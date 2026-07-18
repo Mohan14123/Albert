@@ -24,7 +24,11 @@ class MessageService:
         message = await self._messages.create(chat_id, "user", content, "pending")
         await self._events.publish(
             "message.received",
-            {"message_id": str(message.id), "chat_id": str(chat_id), "user_id": str(user_id)},
+            {
+                "message_id": str(message.id),
+                "chat_id": str(chat_id),
+                "user_id": str(user_id),
+            },
         )
         return message
 
@@ -32,11 +36,15 @@ class MessageService:
         await self._require_owned_chat(user_id, chat_id)
         return await self._messages.get_by_chat(chat_id, page, limit)
 
-    async def store_ai_response(self, chat_id: UUID, content: str, token_count: int | None):
+    async def store_ai_response(
+        self, chat_id: UUID, content: str, token_count: int | None
+    ):
         chat = await self._chats.get_by_id(chat_id)
         if chat is None:
             raise NotFoundError("Chat not found")
-        message = await self._messages.create(chat_id, "assistant", content, "completed")
+        message = await self._messages.create(
+            chat_id, "assistant", content, "completed"
+        )
         message.token_count = token_count
         await self._events.publish(
             "message.stored", {"message_id": str(message.id), "chat_id": str(chat_id)}

@@ -56,7 +56,9 @@ class IntegrationService:
         return await self._get_owned_integration(user_id, provider)
 
     async def _get_owned_integration(self, user_id: UUID, provider: str):
-        integration = await self._integrations.get_by_user_and_provider(user_id, provider)
+        integration = await self._integrations.get_by_user_and_provider(
+            user_id, provider
+        )
         if integration is None:
             raise NotFoundError("Integration not found")
         return integration

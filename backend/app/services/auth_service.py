@@ -2,7 +2,7 @@
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from app.config.settings import settings
@@ -32,21 +32,33 @@ class AuthService:
             raise ValidationError("An account already exists for this email")
         self._validate_password(password)
         user = await self._users.create(
-            {"email": email, "password_hash": get_password_hash(password), "full_name": full_name}
+            {
+                "email": email,
+                "password_hash": get_password_hash(password),
+                "full_name": full_name,
+            }
         )
         await self._user_settings.create(user.id, {})
-        await self._events.publish("user.created", {"user_id": str(user.id), "email": user.email})
+        await self._events.publish(
+            "user.created", {"user_id": str(user.id), "email": user.email}
+        )
         return user.id
 
     async def login(self, email: str, password: str) -> dict[str, object]:
         user = await self._users.get_by_email(email)
-        if user is None or not user.is_active or not verify_password(password, user.password_hash):
+        if (
+            user is None
+            or not user.is_active
+            or not verify_password(password, user.password_hash)
+        ):
             raise AuthenticationError("Invalid email or password")
         return await self._issue_tokens(user.id)
 
     async def refresh(self, refresh_token: str) -> dict[str, object]:
-        token = await self._refresh_tokens.get_by_hash(self._hash_refresh_token(refresh_token))
-        if token is None or token.revoked or token.expires_at <= datetime.now(timezone.utc):
+        token = await self._refresh_tokens.get_by_hash(
+            self._hash_refresh_token(refresh_token)
+        )
+        if token is None or token.revoked or token.expires_at <= datetime.now(UTC):
             raise AuthenticationError("Refresh token is invalid or expired")
         await self._refresh_tokens.revoke(token.id)
         result = await self._issue_tokens(token.user_id)
@@ -54,7 +66,9 @@ class AuthService:
         return result
 
     async def logout(self, refresh_token: str) -> None:
-        token = await self._refresh_tokens.get_by_hash(self._hash_refresh_token(refresh_token))
+        token = await self._refresh_tokens.get_by_hash(
+            self._hash_refresh_token(refresh_token)
+        )
         if token is not None:
             await self._refresh_tokens.revoke(token.id)
             await self._events.publish("auth.logout", {"user_id": str(token.user_id)})
@@ -67,7 +81,7 @@ class AuthService:
         await self._refresh_tokens.create(
             user_id,
             self._hash_refresh_token(raw_refresh),
-            datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days),
+            datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days),
         )
         await self._events.publish("auth.login", {"user_id": str(user_id)})
         return {
@@ -82,5 +96,14 @@ class AuthService:
 
     @staticmethod
     def _validate_password(password: str) -> None:
-        if len(password) < 12 or not all((any(c.isupper() for c in password), any(c.islower() for c in password), any(c.isdigit() for c in password), any(not c.isalnum() for c in password))):
-            raise ValidationError("Password must be at least 12 characters with upper, lower, number, and symbol")
+        if len(password) < 12 or not all(
+            (
+                any(c.isupper() for c in password),
+                any(c.islower() for c in password),
+                any(c.isdigit() for c in password),
+                any(not c.isalnum() for c in password),
+            )
+        ):
+            raise ValidationError(
+                "Password needs 12+ characters with upper, lower, number, and symbol"
+            )
