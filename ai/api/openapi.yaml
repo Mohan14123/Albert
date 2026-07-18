@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Alfred AI Assistant API
+  version: 1.0.0
+  description: API contracts for integrating the Alfred AI module with the backend adapter layer.
+paths:
+  /api/v1/chat:
+    post:
+      summary: Send a chat request
+      description: Coordinates AI response execution. Supports standard JSON complete responses and SSE streaming.
+      parameters:
+        - name: Accept
+          in: header
+          required: false
+          schema:
+            type: string
+            enum: [application/json, text/event-stream]
+            default: application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Successful complete chat response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantResponse'
+            text/event-stream:
+              description: Streaming SSE response chunks
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal AI processing failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+    ChatRequest:
+      type: object
+      required:
+        - conversation_id
+        - user_id
+        - message
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+        message:
+          type: string
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        metadata:
+          type: object
+          additionalProperties: true
+    AssistantResponse:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+        metadata:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              format: uuid
+            execution_time_ms:
+              type: integer
+          additionalProperties: true
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

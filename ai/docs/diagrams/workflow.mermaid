@@ -1,0 +1,9 @@
+flowchart TD
+    Start([Start Chat Request]) --> Plan[Create Execution Plan]
+    Plan --> Retrieve[Retrieve Relevant Memories]
+    Retrieve --> Tools[Execute Authorized Tools]
+    Tools --> Context[Build Provider Prompt Context]
+    Context --> Model[Generate LLM Completion]
+    Model --> Format[Format & Validate Output]
+    Format --> Save[Save Durable Memory]
+    Save --> End([Response Delivered])

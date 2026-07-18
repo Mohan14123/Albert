@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor User as User Request
+    participant O as AIOrchestrator
+    participant P as IntentPlanner
+    participant M as MemoryRetriever
+    participant T as ToolExecutor
+    participant C as ContextAssembler
+    participant G as LLMGateway
+    participant F as ResponseFormatter
+    participant W as MemoryWriter
+
+    User->>O: respond(ChatRequest)
+    O->>P: create_plan(ChatRequest)
+    P-->>O: ExecutionPlan
+    O->>M: retrieve(ChatRequest, Plan)
+    M-->>O: Sequence[MemoryRecord]
+    O->>T: execute(ChatRequest, Plan)
+    T-->>O: Sequence[ToolResult]
+    O->>C: build(Request, Plan, Memories, ToolResults)
+    C-->>O: PromptContext
+    O->>G: generate(PromptContext)
+    G-->>O: ModelResult
+    O->>F: format(ModelResult, Plan)
+    F-->>O: AssistantResponse
+    O->>W: save(Request, Response, Plan)
+    W-->>O: void
+    O-->>User: AssistantResponse
