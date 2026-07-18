@@ -1,0 +1,25 @@
+services:
+  postgres:
+    restart: unless-stopped
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+  redis:
+    restart: unless-stopped
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+  rabbitmq:
+    restart: unless-stopped
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
