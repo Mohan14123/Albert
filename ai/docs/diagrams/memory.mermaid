@@ -1,0 +1,15 @@
+graph LR
+    subgraph Memory Storage
+        Facts[(Facts Storage)]
+        Prefs[(Preferences Storage)]
+        Summaries[(Summaries Storage)]
+        Tasks[(Tasks Storage)]
+        Rels[(Relationships Storage)]
+    end
+
+    UserMessage --> Extraction[Memory Extractor]
+    Extraction --> Save[Memory Writer]
+    Save --> MemoryStorage
+
+    MemoryStorage --> Retrieval[Memory Retriever]
+    Retrieval --> PromptContext[Prompt Context]

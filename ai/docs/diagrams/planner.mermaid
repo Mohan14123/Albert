@@ -1,0 +1,8 @@
+flowchart TD
+    In[Chat Request] --> Intent[Detect Intent]
+    Intent --> Cond{Tool Required?}
+    Cond -- Yes --> Select[Select Tools from Registry]
+    Select --> Construct[Construct Steps and Parameters]
+    Cond -- No --> Direct[Create Direct Direct-Response Plan]
+    Construct --> Plan[Output Execution Plan]
+    Direct --> Plan
