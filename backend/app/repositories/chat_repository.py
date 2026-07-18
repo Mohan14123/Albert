@@ -1,6 +1,6 @@
 """Persistence operations for chats."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -24,12 +24,22 @@ class ChatRepository:
             select(Chat).where(Chat.id == chat_id, Chat.deleted_at.is_(None))
         )
 
-    async def get_by_user(self, user_id: UUID, page: int, limit: int) -> tuple[list[Chat], int]:
+    async def get_by_user(
+        self, user_id: UUID, page: int, limit: int
+    ) -> tuple[list[Chat], int]:
         filters = (Chat.user_id == user_id, Chat.deleted_at.is_(None))
-        total = await self._session.scalar(select(func.count()).select_from(Chat).where(*filters))
-        items = (await self._session.scalars(
-            select(Chat).where(*filters).order_by(Chat.updated_at.desc()).offset((page - 1) * limit).limit(limit)
-        )).all()
+        total = await self._session.scalar(
+            select(func.count()).select_from(Chat).where(*filters)
+        )
+        items = (
+            await self._session.scalars(
+                select(Chat)
+                .where(*filters)
+                .order_by(Chat.updated_at.desc())
+                .offset((page - 1) * limit)
+                .limit(limit)
+            )
+        ).all()
         return list(items), total or 0
 
     async def update(self, chat_id: UUID, data: dict[str, object]) -> Chat | None:
@@ -48,6 +58,6 @@ class ChatRepository:
         chat = await self.get_by_id(chat_id)
         if chat is None:
             return None
-        chat.deleted_at = datetime.now(timezone.utc)
+        chat.deleted_at = datetime.now(UTC)
         await self._session.flush()
         return chat

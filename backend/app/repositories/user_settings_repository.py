@@ -19,9 +19,13 @@ class UserSettingsRepository:
         return settings
 
     async def get_by_user(self, user_id: UUID) -> UserSettings | None:
-        return await self._session.scalar(select(UserSettings).where(UserSettings.user_id == user_id))
+        return await self._session.scalar(
+            select(UserSettings).where(UserSettings.user_id == user_id)
+        )
 
-    async def update(self, user_id: UUID, data: dict[str, object]) -> UserSettings | None:
+    async def update(
+        self, user_id: UUID, data: dict[str, object]
+    ) -> UserSettings | None:
         settings = await self.get_by_user(user_id)
         if settings is None:
             return None

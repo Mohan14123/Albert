@@ -1,6 +1,6 @@
 """Persistence operations for user integrations."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -15,23 +15,38 @@ class IntegrationRepository:
 
     async def create(self, user_id: UUID, provider: str) -> Integration:
         integration = Integration(
-            user_id=user_id, provider=provider, status="disconnected", connected_at=datetime.now(timezone.utc)
+            user_id=user_id,
+            provider=provider,
+            status="disconnected",
+            connected_at=datetime.now(UTC),
         )
         self._session.add(integration)
         await self._session.flush()
         return integration
 
     async def get_by_user(self, user_id: UUID) -> list[Integration]:
-        return list((await self._session.scalars(
-            select(Integration).where(Integration.user_id == user_id).order_by(Integration.provider)
-        )).all())
+        return list(
+            (
+                await self._session.scalars(
+                    select(Integration)
+                    .where(Integration.user_id == user_id)
+                    .order_by(Integration.provider)
+                )
+            ).all()
+        )
 
-    async def get_by_user_and_provider(self, user_id: UUID, provider: str) -> Integration | None:
-        return await self._session.scalar(select(Integration).where(
-            Integration.user_id == user_id, Integration.provider == provider
-        ))
+    async def get_by_user_and_provider(
+        self, user_id: UUID, provider: str
+    ) -> Integration | None:
+        return await self._session.scalar(
+            select(Integration).where(
+                Integration.user_id == user_id, Integration.provider == provider
+            )
+        )
 
-    async def update_status(self, integration_id: UUID, status: str) -> Integration | None:
+    async def update_status(
+        self, integration_id: UUID, status: str
+    ) -> Integration | None:
         integration = await self._session.get(Integration, integration_id)
         if integration is None:
             return None
@@ -43,7 +58,7 @@ class IntegrationRepository:
         integration = await self._session.get(Integration, integration_id)
         if integration is None:
             return None
-        integration.last_sync = datetime.now(timezone.utc)
+        integration.last_sync = datetime.now(UTC)
         await self._session.flush()
         return integration
 

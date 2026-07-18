@@ -1,6 +1,6 @@
 """Persistence operations for users."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -42,6 +42,6 @@ class UserRepository:
         user = await self.get_by_id(user_id)
         if user is None:
             return None
-        user.deleted_at = datetime.now(timezone.utc)
+        user.deleted_at = datetime.now(UTC)
         await self._session.flush()
         return user

@@ -14,11 +14,17 @@ class OAuthTokenRepository:
         self._session = session
 
     async def create(
-        self, integration_id: UUID, encrypted_access: str, encrypted_refresh: str | None, expires_at: datetime | None
+        self,
+        integration_id: UUID,
+        encrypted_access: str,
+        encrypted_refresh: str | None,
+        expires_at: datetime | None,
     ) -> OAuthToken:
         token = OAuthToken(
-            integration_id=integration_id, access_token=encrypted_access,
-            refresh_token=encrypted_refresh, expires_at=expires_at,
+            integration_id=integration_id,
+            access_token=encrypted_access,
+            refresh_token=encrypted_refresh,
+            expires_at=expires_at,
         )
         self._session.add(token)
         await self._session.flush()
@@ -29,7 +35,9 @@ class OAuthTokenRepository:
             select(OAuthToken).where(OAuthToken.integration_id == integration_id)
         )
 
-    async def update(self, token_id: UUID, data: dict[str, object]) -> OAuthToken | None:
+    async def update(
+        self, token_id: UUID, data: dict[str, object]
+    ) -> OAuthToken | None:
         token = await self._session.get(OAuthToken, token_id)
         if token is None:
             return None
