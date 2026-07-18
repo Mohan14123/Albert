@@ -1,0 +1,12 @@
+graph TD
+    UserRequest[User Request] --> Orchestrator[AI Orchestrator]
+    Orchestrator --> Planner[Intent Planner]
+    Orchestrator --> MemoryRetriever[Memory Retriever]
+    Orchestrator --> ToolExecutor[Tool Executor]
+    Orchestrator --> ContextAssembler[Context Assembler]
+    Orchestrator --> LLMGateway[LLM Gateway]
+    Orchestrator --> ResponseFormatter[Response Formatter]
+    Orchestrator --> MemoryWriter[Memory Writer]
+
+    LLMGateway --> Providers[OpenAI / Gemini / Claude / DeepSeek]
+    ToolExecutor --> ToolRegistry[Tool Registry]
