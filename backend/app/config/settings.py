@@ -63,6 +63,12 @@ class Settings(BaseSettings):
     microsoft_client_id: str = ""
     microsoft_client_secret: SecretStr | None = None
     microsoft_redirect_uri: str = ""
+    slack_client_id: str = ""
+    slack_client_secret: SecretStr | None = None
+    slack_redirect_uri: str = ""
+    jira_client_id: str = ""
+    jira_client_secret: SecretStr | None = None
+    jira_redirect_uri: str = ""
 
     ai_service_url: str
     ai_api_key: SecretStr | None = None

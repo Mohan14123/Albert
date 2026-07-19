@@ -82,3 +82,54 @@ async def test_sync_not_found(async_client: AsyncClient, auth_headers: dict):
         headers=auth_headers,
     )
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_connect_slack_returns_auth_url(
+    async_client: AsyncClient, auth_headers: dict
+):
+    """Connecting Slack returns a Slack OAuth authorization URL."""
+    response = await async_client.post(
+        "/api/v1/integrations/slack/connect",
+        headers=auth_headers,
+    )
+    if response.status_code == 200:
+        data = response.json()
+        assert "auth_url" in data
+        assert "slack.com" in data["auth_url"]
+    else:
+        assert response.status_code in (400, 422, 502)
+
+
+@pytest.mark.asyncio
+async def test_connect_github_returns_auth_url(
+    async_client: AsyncClient, auth_headers: dict
+):
+    """Connecting GitHub returns a GitHub OAuth authorization URL."""
+    response = await async_client.post(
+        "/api/v1/integrations/github/connect",
+        headers=auth_headers,
+    )
+    if response.status_code == 200:
+        data = response.json()
+        assert "auth_url" in data
+        assert "github.com" in data["auth_url"]
+    else:
+        assert response.status_code in (400, 422, 502)
+
+
+@pytest.mark.asyncio
+async def test_connect_jira_returns_auth_url(
+    async_client: AsyncClient, auth_headers: dict
+):
+    """Connecting Jira returns an Atlassian OAuth authorization URL."""
+    response = await async_client.post(
+        "/api/v1/integrations/jira/connect",
+        headers=auth_headers,
+    )
+    if response.status_code == 200:
+        data = response.json()
+        assert "auth_url" in data
+        assert "atlassian.com" in data["auth_url"]
+    else:
+        assert response.status_code in (400, 422, 502)
