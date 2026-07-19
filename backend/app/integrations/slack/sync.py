@@ -4,7 +4,7 @@ import logging
 from uuid import UUID
 
 from app.core.security import decrypt_token
-from app.database.session import AsyncSessionLocal
+from app.database.engine import async_session
 from app.repositories.integration_repository import IntegrationRepository
 from app.repositories.oauth_token_repository import OAuthTokenRepository
 
@@ -15,7 +15,7 @@ class SlackSync:
     @staticmethod
     async def sync_messages(user_id: str) -> None:
         """Fetch Slack messages and channels and perform background sync."""
-        async with AsyncSessionLocal() as session:
+        async with async_session() as session:
             integrations = IntegrationRepository(session)
             tokens = OAuthTokenRepository(session)
 

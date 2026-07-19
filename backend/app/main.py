@@ -64,9 +64,9 @@ def create_app() -> FastAPI:
             app.state.publisher = None
 
         logger.info("Albert backend ready on %s:%s", settings.host, settings.port)
-        
+
         yield  # application is running
-        
+
         logger.info("Shutting down Albert backend…")
         if getattr(app.state, "publisher", None) is not None:
             await app.state.publisher.close()

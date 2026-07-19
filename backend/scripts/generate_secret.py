@@ -8,5 +8,6 @@ def generate_keys():
     print(f"JWT_SECRET={jwt_secret}")
     print(f"TOKEN_ENCRYPTION_KEY={token_encryption_key}")
 
+
 if __name__ == "__main__":
     generate_keys()
