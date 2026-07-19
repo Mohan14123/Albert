@@ -7,6 +7,7 @@ from ..orchestrator.models import ChatRequest
 from .base import Tool
 from ..exceptions import ToolError
 
+
 class ToolRegistry:
     """Registry to register and inspect available plug-and-play tools."""
 
@@ -34,48 +35,57 @@ class DefaultToolExecutor(ToolExecutor):
     def __init__(self, registry: ToolRegistry) -> None:
         self._registry = registry
 
-    async def execute(self, request: ChatRequest, plan: Any) -> Sequence[dict[str, Any]]:
+    async def execute(
+        self, request: ChatRequest, plan: Any
+    ) -> Sequence[dict[str, Any]]:
         """Run each step in the plan that matches a tool from the registry."""
         results = []
-        
+
         # Check if plan has steps attribute (matches ExecutionPlan)
         steps = getattr(plan, "steps", []) if plan else []
-        
+
         for step in steps:
             tool_name = getattr(step, "tool_name", "unknown")
             args = getattr(step, "args", {})
-            
+
             tool = self._registry.get_tool(tool_name)
             if not tool:
-                results.append({
-                    "tool_name": tool_name,
-                    "success": False,
-                    "result": None,
-                    "error": f"Tool '{tool_name}' not found in registry."
-                })
+                results.append(
+                    {
+                        "tool_name": tool_name,
+                        "success": False,
+                        "result": None,
+                        "error": f"Tool '{tool_name}' not found in registry.",
+                    }
+                )
                 continue
 
             try:
                 # Execute tool run asynchronously
                 res = await tool.run(**args)
-                results.append({
-                    "tool_name": tool_name,
-                    "success": True,
-                    "result": res,
-                    "error": None
-                })
+                results.append(
+                    {
+                        "tool_name": tool_name,
+                        "success": True,
+                        "result": res,
+                        "error": None,
+                    }
+                )
             except Exception as e:
-                results.append({
-                    "tool_name": tool_name,
-                    "success": False,
-                    "result": None,
-                    "error": str(e)
-                })
+                results.append(
+                    {
+                        "tool_name": tool_name,
+                        "success": False,
+                        "result": None,
+                        "error": str(e),
+                    }
+                )
 
         return results
 
 
 # --- Concrete Example Tool Stubs ---
+
 
 class SearchTool(Tool):
     """Stub tool to query web search results."""
@@ -95,7 +105,7 @@ class SearchTool(Tool):
             "properties": {
                 "query": {"type": "string", "description": "Search query terms."}
             },
-            "required": ["query"]
+            "required": ["query"],
         }
 
     async def run(self, **kwargs: Any) -> Any:
@@ -121,9 +131,9 @@ class GmailTool(Tool):
             "properties": {
                 "to": {"type": "string", "description": "Recipient email address."},
                 "subject": {"type": "string", "description": "Email subject."},
-                "body": {"type": "string", "description": "Email body content."}
+                "body": {"type": "string", "description": "Email body content."},
             },
-            "required": ["to", "subject", "body"]
+            "required": ["to", "subject", "body"],
         }
 
     async def run(self, **kwargs: Any) -> Any:
@@ -149,14 +159,14 @@ class CalendarTool(Tool):
             "type": "object",
             "properties": {
                 "limit": {"type": "integer", "description": "Max events to return."}
-            }
+            },
         }
 
     async def run(self, **kwargs: Any) -> Any:
         limit = kwargs.get("limit", 3)
         return [
             {"summary": "Alfred Code Review", "start": "2026-07-18T14:00:00Z"},
-            {"summary": "Lunch with Mohan", "start": "2026-07-18T13:00:00Z"}
+            {"summary": "Lunch with Mohan", "start": "2026-07-18T13:00:00Z"},
         ][:limit]
 
 
@@ -176,9 +186,12 @@ class CalculatorTool(Tool):
         return {
             "type": "object",
             "properties": {
-                "expression": {"type": "string", "description": "Math expression, e.g. 2 + 2."}
+                "expression": {
+                    "type": "string",
+                    "description": "Math expression, e.g. 2 + 2.",
+                }
             },
-            "required": ["expression"]
+            "required": ["expression"],
         }
 
     async def run(self, **kwargs: Any) -> Any:
@@ -204,20 +217,26 @@ class CalculatorTool(Tool):
             """Recursively evaluate an AST node using only safe arithmetic ops."""
             if isinstance(node, ast.Expression):
                 return _safe_eval(node.body)
-            elif isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            elif isinstance(node, ast.Constant) and isinstance(
+                node.value, (int, float)
+            ):
                 return node.value
             elif isinstance(node, ast.BinOp):
                 op_func = _ops.get(type(node.op))
                 if op_func is None:
                     raise ToolError(f"Unsupported operator: {type(node.op).__name__}")
-                return op_func(_safe_eval(node.left), _safe_eval(node.right))
+                return op_func(_safe_eval(node.left), _safe_eval(node.right))  # type: ignore
             elif isinstance(node, ast.UnaryOp):
                 op_func = _ops.get(type(node.op))
                 if op_func is None:
-                    raise ToolError(f"Unsupported unary operator: {type(node.op).__name__}")
-                return op_func(_safe_eval(node.operand))
+                    raise ToolError(
+                        f"Unsupported unary operator: {type(node.op).__name__}"
+                    )
+                return op_func(_safe_eval(node.operand))  # type: ignore
             else:
-                raise ToolError(f"Unsupported expression element: {type(node).__name__}")
+                raise ToolError(
+                    f"Unsupported expression element: {type(node).__name__}"
+                )
 
         try:
             tree = ast.parse(expression.strip(), mode="eval")

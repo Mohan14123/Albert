@@ -5,6 +5,7 @@ from ..orchestrator.contracts import ResponseFormatter
 from ..orchestrator.models import AssistantResponse
 from ..exceptions import ResponseFormatterError
 
+
 class DefaultResponseFormatter(ResponseFormatter):
     """Formats LLM gateway generation outputs into API response envelopes."""
 
@@ -15,22 +16,21 @@ class DefaultResponseFormatter(ResponseFormatter):
 
         content = model_result.get("content")
         if content is None:
-            raise ResponseFormatterError("Model result dictionary did not contain a 'content' key")
+            raise ResponseFormatterError(
+                "Model result dictionary did not contain a 'content' key"
+            )
 
         metadata = {
             "intent": getattr(plan, "intent", "unknown"),
         }
-        
+
         # Pull provider metadata if present
         if "provider_metadata" in model_result:
             metadata.update(model_result["provider_metadata"])
         elif "provider" in model_result:
             metadata["provider"] = model_result["provider"]
 
-        return AssistantResponse(
-            content=content,
-            metadata=metadata
-        )
+        return AssistantResponse(content=content, metadata=metadata)
 
     async def format_stream_event(self, event: Any) -> Mapping[str, Any] | None:
         """Map raw provider streaming events to standardized SSE JSON chunks."""
@@ -44,5 +44,5 @@ class DefaultResponseFormatter(ResponseFormatter):
         return {
             "event": "token",
             "delta": delta,
-            "provider": event.get("provider", "unknown")
+            "provider": event.get("provider", "unknown"),
         }

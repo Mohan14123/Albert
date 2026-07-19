@@ -25,10 +25,9 @@ class ChatConsumer(BaseConsumer):
 
     async def on_message(self, event: DomainEvent) -> None:
         logger.info("Handling AI response generated event: %s", event.event_id)
-        
+
         payload = event.payload
         chat_id = UUID(payload["chat_id"])
-        message_id = payload["message_id"]
         content = payload["content"]
         token_count = payload.get("token_count")
 
@@ -39,14 +38,14 @@ class ChatConsumer(BaseConsumer):
                 messages=MessageRepository(session),
                 events=EventPublisher(),
             )
-            
+
             message = await service.store_ai_response(
                 chat_id=chat_id,
                 content=content,
                 token_count=token_count,
             )
             await session.commit()
-            
+
         # 2. Publish to Redis stream for SSE endpoint
         try:
             r = aioredis.from_url(settings.redis_url, decode_responses=True)

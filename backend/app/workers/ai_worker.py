@@ -5,7 +5,6 @@ import logging
 from uuid import UUID
 
 import httpx
-from sqlalchemy import select
 
 from app.config.settings import settings
 from app.database.engine import async_session
@@ -63,7 +62,9 @@ class AIWorker(BaseConsumer):
             async with httpx.AsyncClient(timeout=settings.ai_request_timeout) as client:
                 headers = {}
                 if settings.ai_api_key:
-                    headers["X-Internal-Api-Key"] = settings.ai_api_key.get_secret_value()
+                    headers["X-Internal-Api-Key"] = (
+                        settings.ai_api_key.get_secret_value()
+                    )
 
                 response = await client.post(
                     f"{settings.ai_service_url}/api/v1/chat",

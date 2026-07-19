@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Implementations of LLM API clients using python's standard libraries."""
+
+from __future__ import annotations
 
 import json
 import logging
@@ -8,7 +8,7 @@ import urllib.request
 import urllib.error
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator
 
 from ..constants import ROLE_USER, ROLE_ASSISTANT, ROLE_SYSTEM
 from ..exceptions import GatewayError
@@ -46,14 +46,18 @@ class MockProvider(LLMProvider):
         prompt = str(context)
         return {
             "content": f"[Mock LLM response for context: '{prompt[:40]}...']",
-            "provider": "mock"
+            "provider": "mock",
         }
 
     async def stream(self, context: Any) -> AsyncIterator[dict[str, Any]]:
         prompt = str(context)
         chunks = [
-            "[Mock", " LLM", " streaming", " response", " for", 
-            f" context: '{prompt[:30]}...']"
+            "[Mock",
+            " LLM",
+            " streaming",
+            " response",
+            " for",
+            f" context: '{prompt[:30]}...']",
         ]
         for chunk in chunks:
             await asyncio.sleep(0.05)
@@ -75,9 +79,9 @@ class OpenAICompatibleProvider(LLMProvider):
             data=json.dumps(payload).encode("utf-8"),
             headers={
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            method="POST"
+            method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=_DEFAULT_TIMEOUT) as response:
@@ -90,31 +94,23 @@ class OpenAICompatibleProvider(LLMProvider):
 
     async def generate(self, context: Any) -> dict[str, Any]:
         messages = self._normalize_context(context)
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": False
-        }
+        payload = {"model": self.model, "messages": messages, "stream": False}
         res = await asyncio.to_thread(self._make_request, payload)
         try:
             return {
                 "content": res["choices"][0]["message"]["content"],
                 "provider_metadata": {
                     "model": res.get("model"),
-                    "usage": res.get("usage")
-                }
+                    "usage": res.get("usage"),
+                },
             }
         except (KeyError, IndexError) as e:
             raise GatewayError(f"Malformed OpenAI-style response: {e}") from e
 
     async def stream(self, context: Any) -> AsyncIterator[dict[str, Any]]:
         messages = self._normalize_context(context)
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": True
-        }
-        
+        payload = {"model": self.model, "messages": messages, "stream": True}
+
         queue: asyncio.Queue[dict[str, Any] | Exception | None] = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
@@ -125,9 +121,9 @@ class OpenAICompatibleProvider(LLMProvider):
                 data=json.dumps(payload).encode("utf-8"),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
-                method="POST"
+                method="POST",
             )
             try:
                 with urllib.request.urlopen(req, timeout=_DEFAULT_TIMEOUT) as response:
@@ -138,19 +134,32 @@ class OpenAICompatibleProvider(LLMProvider):
                         if decoded == "data: [DONE]":
                             break
                         if decoded.startswith("data: "):
-                            data_str = decoded[len("data: "):]
+                            data_str = decoded[len("data: ") :]
                             try:
                                 data = json.loads(data_str)
                                 delta = data["choices"][0]["delta"].get("content", "")
                                 if delta:
-                                    loop.call_soon_threadsafe(queue.put_nowait, {"delta": delta})
-                            except (json.JSONDecodeError, KeyError, IndexError) as parse_err:
-                                logger.debug("Skipping unparseable stream chunk: %s", parse_err)
+                                    loop.call_soon_threadsafe(
+                                        queue.put_nowait, {"delta": delta}
+                                    )
+                            except (
+                                json.JSONDecodeError,
+                                KeyError,
+                                IndexError,
+                            ) as parse_err:
+                                logger.debug(
+                                    "Skipping unparseable stream chunk: %s", parse_err
+                                )
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode("utf-8")
-                loop.call_soon_threadsafe(queue.put_nowait, GatewayError(f"HTTP stream error {e.code}: {err_body}"))
+                loop.call_soon_threadsafe(
+                    queue.put_nowait,
+                    GatewayError(f"HTTP stream error {e.code}: {err_body}"),
+                )
             except Exception as e:
-                loop.call_soon_threadsafe(queue.put_nowait, GatewayError(f"Stream connection failed: {e}"))
+                loop.call_soon_threadsafe(
+                    queue.put_nowait, GatewayError(f"Stream connection failed: {e}")
+                )
             finally:
                 loop.call_soon_threadsafe(queue.put_nowait, None)
 
@@ -175,7 +184,12 @@ class OpenAICompatibleProvider(LLMProvider):
 class ClaudeProvider(LLMProvider):
     """Client for Anthropic Claude API."""
 
-    def __init__(self, api_key: str, api_base: str | None = None, model: str = "claude-3-5-sonnet"):
+    def __init__(
+        self,
+        api_key: str,
+        api_base: str | None = None,
+        model: str = "claude-3-5-sonnet",
+    ):
         self.api_key = api_key
         self.api_base = api_base or _DEFAULT_CLAUDE_API_BASE
         self.model = model
@@ -188,9 +202,9 @@ class ClaudeProvider(LLMProvider):
             headers={
                 "x-api-key": self.api_key,
                 "anthropic-version": _DEFAULT_ANTHROPIC_VERSION,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            method="POST"
+            method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=_DEFAULT_TIMEOUT) as response:
@@ -201,7 +215,9 @@ class ClaudeProvider(LLMProvider):
         except Exception as e:
             raise GatewayError(f"Anthropic API connection failed: {e}") from e
 
-    def _extract_system_and_messages(self, context: Any) -> tuple[str | None, list[dict[str, str]]]:
+    def _extract_system_and_messages(
+        self, context: Any
+    ) -> tuple[str | None, list[dict[str, str]]]:
         """Separate system messages from user/assistant messages.
 
         Claude API requires the system prompt as a top-level parameter,
@@ -209,7 +225,7 @@ class ClaudeProvider(LLMProvider):
         """
         raw_messages = self._normalize_context(context)
         system_parts: list[str] = []
-        filtered: list[str] = []
+        filtered: list[dict[str, str]] = []
         for msg in raw_messages:
             if msg.get("role") == ROLE_SYSTEM:
                 system_parts.append(msg.get("content", ""))
@@ -224,7 +240,7 @@ class ClaudeProvider(LLMProvider):
             "model": self.model,
             "messages": messages,
             "max_tokens": _DEFAULT_MAX_TOKENS,
-            "stream": False
+            "stream": False,
         }
         if system_text:
             payload["system"] = system_text
@@ -235,8 +251,8 @@ class ClaudeProvider(LLMProvider):
                 "content": res["content"][0]["text"],
                 "provider_metadata": {
                     "model": res.get("model"),
-                    "usage": res.get("usage")
-                }
+                    "usage": res.get("usage"),
+                },
             }
         except (KeyError, IndexError) as e:
             raise GatewayError(f"Malformed Anthropic response: {e}") from e
@@ -247,11 +263,11 @@ class ClaudeProvider(LLMProvider):
             "model": self.model,
             "messages": messages,
             "max_tokens": _DEFAULT_MAX_TOKENS,
-            "stream": True
+            "stream": True,
         }
         if system_text:
             payload["system"] = system_text
-        
+
         queue: asyncio.Queue[dict[str, Any] | Exception | None] = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
@@ -263,9 +279,9 @@ class ClaudeProvider(LLMProvider):
                 headers={
                     "x-api-key": self.api_key,
                     "anthropic-version": _DEFAULT_ANTHROPIC_VERSION,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
-                method="POST"
+                method="POST",
             )
             try:
                 with urllib.request.urlopen(req, timeout=_DEFAULT_TIMEOUT) as response:
@@ -275,22 +291,33 @@ class ClaudeProvider(LLMProvider):
                         if not decoded:
                             continue
                         if decoded.startswith("event: "):
-                            current_event = decoded[len("event: "):]
+                            current_event = decoded[len("event: ") :]
                         elif decoded.startswith("data: "):
-                            data_str = decoded[len("data: "):]
+                            data_str = decoded[len("data: ") :]
                             if current_event == "content_block_delta":
                                 try:
                                     data = json.loads(data_str)
                                     delta = data["delta"].get("text", "")
                                     if delta:
-                                        loop.call_soon_threadsafe(queue.put_nowait, {"delta": delta})
+                                        loop.call_soon_threadsafe(
+                                            queue.put_nowait, {"delta": delta}
+                                        )
                                 except (json.JSONDecodeError, KeyError) as parse_err:
-                                    logger.debug("Skipping unparseable Claude chunk: %s", parse_err)
+                                    logger.debug(
+                                        "Skipping unparseable Claude chunk: %s",
+                                        parse_err,
+                                    )
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode("utf-8")
-                loop.call_soon_threadsafe(queue.put_nowait, GatewayError(f"Anthropic HTTP stream error {e.code}: {err_body}"))
+                loop.call_soon_threadsafe(
+                    queue.put_nowait,
+                    GatewayError(f"Anthropic HTTP stream error {e.code}: {err_body}"),
+                )
             except Exception as e:
-                loop.call_soon_threadsafe(queue.put_nowait, GatewayError(f"Anthropic stream connection failed: {e}"))
+                loop.call_soon_threadsafe(
+                    queue.put_nowait,
+                    GatewayError(f"Anthropic stream connection failed: {e}"),
+                )
             finally:
                 loop.call_soon_threadsafe(queue.put_nowait, None)
 
@@ -313,7 +340,9 @@ class ClaudeProvider(LLMProvider):
 class GeminiProvider(LLMProvider):
     """Client for Google Gemini API."""
 
-    def __init__(self, api_key: str, api_base: str | None = None, model: str = "gemini-1.5-pro"):
+    def __init__(
+        self, api_key: str, api_base: str | None = None, model: str = "gemini-1.5-pro"
+    ):
         self.api_key = api_key
         self.api_base = api_base or _DEFAULT_GEMINI_API_BASE
         self.model = model
@@ -324,7 +353,7 @@ class GeminiProvider(LLMProvider):
             url,
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
-            method="POST"
+            method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=_DEFAULT_TIMEOUT) as response:
@@ -335,7 +364,9 @@ class GeminiProvider(LLMProvider):
         except Exception as e:
             raise GatewayError(f"Gemini API connection failed: {e}") from e
 
-    def _extract_system_and_contents(self, context: Any) -> tuple[str | None, list[dict[str, Any]]]:
+    def _extract_system_and_contents(
+        self, context: Any
+    ) -> tuple[str | None, list[dict[str, Any]]]:
         """Separate system instructions from user/model messages.
 
         Gemini API requires system instructions via the top-level
@@ -350,10 +381,9 @@ class GeminiProvider(LLMProvider):
             else:
                 # Convert to Gemini format
                 role = "model" if msg.get("role") == ROLE_ASSISTANT else ROLE_USER
-                filtered.append({
-                    "role": role,
-                    "parts": [{"text": msg.get("content", "")}]
-                })
+                filtered.append(
+                    {"role": role, "parts": [{"text": msg.get("content", "")}]}
+                )
         system_text = "\n".join(system_parts) if system_parts else None
         return system_text, filtered
 
@@ -361,15 +391,13 @@ class GeminiProvider(LLMProvider):
         system_text, contents = self._extract_system_and_contents(context)
         payload: dict[str, Any] = {"contents": contents}
         if system_text:
-            payload["systemInstruction"] = {
-                "parts": [{"text": system_text}]
-            }
+            payload["systemInstruction"] = {"parts": [{"text": system_text}]}
 
         res = await asyncio.to_thread(self._make_request, payload)
         try:
             return {
                 "content": res["candidates"][0]["content"]["parts"][0]["text"],
-                "provider_metadata": {"model": self.model}
+                "provider_metadata": {"model": self.model},
             }
         except (KeyError, IndexError) as e:
             raise GatewayError(f"Malformed Gemini response: {e}") from e
@@ -384,9 +412,7 @@ class GeminiProvider(LLMProvider):
         system_text, contents = self._extract_system_and_contents(context)
         payload: dict[str, Any] = {"contents": contents}
         if system_text:
-            payload["systemInstruction"] = {
-                "parts": [{"text": system_text}]
-            }
+            payload["systemInstruction"] = {"parts": [{"text": system_text}]}
 
         queue: asyncio.Queue[dict[str, Any] | Exception | None] = asyncio.Queue()
         loop = asyncio.get_running_loop()
@@ -397,7 +423,7 @@ class GeminiProvider(LLMProvider):
                 url,
                 data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json"},
-                method="POST"
+                method="POST",
             )
             try:
                 with urllib.request.urlopen(req, timeout=_DEFAULT_TIMEOUT) as response:
@@ -406,30 +432,42 @@ class GeminiProvider(LLMProvider):
                         if not decoded:
                             continue
                         if decoded.startswith("data: "):
-                            data_str = decoded[len("data: "):]
+                            data_str = decoded[len("data: ") :]
                             try:
                                 data = json.loads(data_str)
                                 # Extract text from candidates[0].content.parts[0].text
                                 candidates = data.get("candidates", [])
                                 if candidates:
-                                    parts = candidates[0].get("content", {}).get("parts", [])
+                                    parts = (
+                                        candidates[0]
+                                        .get("content", {})
+                                        .get("parts", [])
+                                    )
                                     for part in parts:
                                         text = part.get("text", "")
                                         if text:
                                             loop.call_soon_threadsafe(
                                                 queue.put_nowait, {"delta": text}
                                             )
-                            except (json.JSONDecodeError, KeyError, IndexError) as parse_err:
-                                logger.debug("Skipping unparseable Gemini chunk: %s", parse_err)
+                            except (
+                                json.JSONDecodeError,
+                                KeyError,
+                                IndexError,
+                            ) as parse_err:
+                                logger.debug(
+                                    "Skipping unparseable Gemini chunk: %s", parse_err
+                                )
             except urllib.error.HTTPError as e:
                 err_body = e.read().decode("utf-8")
                 loop.call_soon_threadsafe(
                     queue.put_nowait,
-                    GatewayError(f"Gemini stream HTTP error {e.code}: {err_body}")
+                    GatewayError(f"Gemini stream HTTP error {e.code}: {err_body}"),
                 )
             except Exception as e:
                 # Fallback: generate non-streaming and chunk the result
-                logger.warning("Gemini SSE stream failed, falling back to chunked generate: %s", e)
+                logger.warning(
+                    "Gemini SSE stream failed, falling back to chunked generate: %s", e
+                )
                 try:
                     # Use generateContent (non-streaming) and split into chunks
                     gen_url = f"{self.api_base}/models/{self.model}:generateContent?key={self.api_key}"
@@ -437,20 +475,24 @@ class GeminiProvider(LLMProvider):
                         gen_url,
                         data=json.dumps(payload).encode("utf-8"),
                         headers={"Content-Type": "application/json"},
-                        method="POST"
+                        method="POST",
                     )
-                    with urllib.request.urlopen(gen_req, timeout=_DEFAULT_TIMEOUT) as gen_resp:
+                    with urllib.request.urlopen(
+                        gen_req, timeout=_DEFAULT_TIMEOUT
+                    ) as gen_resp:
                         res = json.loads(gen_resp.read().decode("utf-8"))
                     text = res["candidates"][0]["content"]["parts"][0]["text"]
                     chunk_size = 20
                     for i in range(0, len(text), chunk_size):
                         loop.call_soon_threadsafe(
-                            queue.put_nowait, {"delta": text[i:i + chunk_size]}
+                            queue.put_nowait, {"delta": text[i : i + chunk_size]}
                         )
                 except Exception as fallback_err:
                     loop.call_soon_threadsafe(
                         queue.put_nowait,
-                        GatewayError(f"Gemini stream fallback also failed: {fallback_err}")
+                        GatewayError(
+                            f"Gemini stream fallback also failed: {fallback_err}"
+                        ),
                     )
             finally:
                 loop.call_soon_threadsafe(queue.put_nowait, None)

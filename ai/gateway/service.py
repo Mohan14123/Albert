@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Service layer implementing the LanguageModelGateway contract."""
+
+from __future__ import annotations
 
 import logging
 from typing import Any, AsyncIterator
@@ -36,7 +36,7 @@ class MultiProviderGateway(LanguageModelGateway):
     def _init_provider(self) -> LLMProvider:
         """Instantiate the active provider client, falling back to mock if keys are missing."""
         prov_name = self._config.default_provider.lower()
-        
+
         if prov_name == "openai":
             cfg = self._config.openai
             if not cfg.api_key:
@@ -45,7 +45,7 @@ class MultiProviderGateway(LanguageModelGateway):
             return OpenAICompatibleProvider(
                 api_key=cfg.api_key,
                 api_base=cfg.api_base or _DEFAULT_OPENAI_API_BASE,
-                model=cfg.default_model or DEFAULT_OPENAI_MODEL
+                model=cfg.default_model or DEFAULT_OPENAI_MODEL,
             )
         elif prov_name == "deepseek":
             cfg = self._config.deepseek
@@ -55,7 +55,7 @@ class MultiProviderGateway(LanguageModelGateway):
             return OpenAICompatibleProvider(
                 api_key=cfg.api_key,
                 api_base=cfg.api_base or _DEFAULT_DEEPSEEK_API_BASE,
-                model=cfg.default_model or DEFAULT_DEEPSEEK_MODEL
+                model=cfg.default_model or DEFAULT_DEEPSEEK_MODEL,
             )
         elif prov_name == "claude":
             cfg = self._config.claude
@@ -65,7 +65,7 @@ class MultiProviderGateway(LanguageModelGateway):
             return ClaudeProvider(
                 api_key=cfg.api_key,
                 api_base=cfg.api_base,
-                model=cfg.default_model or DEFAULT_CLAUDE_MODEL
+                model=cfg.default_model or DEFAULT_CLAUDE_MODEL,
             )
         elif prov_name == "gemini":
             cfg = self._config.gemini
@@ -75,10 +75,12 @@ class MultiProviderGateway(LanguageModelGateway):
             return GeminiProvider(
                 api_key=cfg.api_key,
                 api_base=cfg.api_base,
-                model=cfg.default_model or DEFAULT_GEMINI_MODEL
+                model=cfg.default_model or DEFAULT_GEMINI_MODEL,
             )
-        
-        logger.warning("Unknown provider '%s' — falling back to MockProvider", prov_name)
+
+        logger.warning(
+            "Unknown provider '%s' — falling back to MockProvider", prov_name
+        )
         return MockProvider()
 
     async def generate(self, context: Any) -> Any:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+
 class PromptManager:
     """Loads, caches, and renders external prompt templates."""
 
@@ -19,7 +20,9 @@ class PromptManager:
         if key not in self._cache:
             file_path = os.path.join(self._templates_dir, f"{key}.txt")
             if not os.path.exists(file_path):
-                raise FileNotFoundError(f"Prompt template file not found at: {file_path}")
+                raise FileNotFoundError(
+                    f"Prompt template file not found at: {file_path}"
+                )
             with open(file_path, "r", encoding="utf-8") as f:
                 self._cache[key] = f.read()
         return self._cache[key]

@@ -13,9 +13,9 @@ def _utc_now() -> datetime:
 @dataclass(frozen=True)
 class MemoryRecord:
     """A standard representation of a context memory item."""
+
     id: str
     type: str  # fact, preference, summary, task, relationship
     content: str
     created_at: datetime = field(default_factory=_utc_now)
     metadata: dict[str, Any] = field(default_factory=dict)
-

@@ -7,6 +7,7 @@ from ..constants import ROLE_SYSTEM, ROLE_USER
 
 from ..prompts import PromptManager
 
+
 class DefaultContextBuilder(ContextAssembler):
     """Assembles prompt contexts for LLM generation from orchestrator inputs."""
 
@@ -48,7 +49,9 @@ class DefaultContextBuilder(ContextAssembler):
                     if success:
                         system_content += f"- Tool '{tool_name}' successfully returned: {result_data}\n"
                     else:
-                        system_content += f"- Tool '{tool_name}' failed with error: {error}\n"
+                        system_content += (
+                            f"- Tool '{tool_name}' failed with error: {error}\n"
+                        )
                 else:
                     system_content += f"- Tool execution output: {str(res)}\n"
 
