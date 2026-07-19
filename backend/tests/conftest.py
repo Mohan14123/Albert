@@ -65,6 +65,7 @@ async def async_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, 
 
     def _override_auth_service(db: AsyncSession = Depends(_override_get_db)):
         from app.repositories.refresh_token_repository import RefreshTokenRepository
+        from app.repositories.session_repository import SessionRepository
         from app.repositories.user_repository import UserRepository
         from app.repositories.user_settings_repository import UserSettingsRepository
         from app.services.auth_service import AuthService
@@ -73,6 +74,7 @@ async def async_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, 
             users=UserRepository(db_session),
             refresh_tokens=RefreshTokenRepository(db_session),
             user_settings=UserSettingsRepository(db_session),
+            sessions=SessionRepository(db_session),
             events=_null,
         )
 

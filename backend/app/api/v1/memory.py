@@ -6,7 +6,6 @@ from app.core.responses import success_response
 from app.database.models.user import User
 from app.events.publisher import EventPublisher
 from app.repositories.memory_repository import MemoryRepository
-from app.services.events import EventDispatcher
 from app.services.memory_service import MemoryService
 
 router = APIRouter(prefix="/memory", tags=["memory"])
@@ -15,7 +14,7 @@ router = APIRouter(prefix="/memory", tags=["memory"])
 def _get_memory_service(db: AsyncSession = Depends(get_db)) -> MemoryService:
     return MemoryService(
         memories=MemoryRepository(db),
-        events=EventDispatcher(EventPublisher()),
+        events=EventPublisher(),
     )
 
 

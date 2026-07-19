@@ -95,13 +95,12 @@ class AIWorker(BaseConsumer):
             )
             if extracted_memories:
                 from app.repositories.memory_repository import MemoryRepository
-                from app.services.events import EventDispatcher
                 from app.services.memory_service import MemoryService
 
                 async with async_session() as session:
                     memory_service = MemoryService(
                         memories=MemoryRepository(session),
-                        events=EventDispatcher(self._publisher),
+                        events=self._publisher,
                     )
                     for mem in extracted_memories:
                         await memory_service.store_memory(

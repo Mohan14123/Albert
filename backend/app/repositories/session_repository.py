@@ -29,7 +29,7 @@ class SessionRepository:
             is_active=True,
         )
         self._session.add(session_obj)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(session_obj)
         return session_obj
 
@@ -52,7 +52,7 @@ class SessionRepository:
     async def revoke(self, session_id: UUID) -> None:
         stmt = update(Session).where(Session.id == session_id).values(is_active=False)
         await self._session.execute(stmt)
-        await self._session.commit()
+        await self._session.flush()
 
     async def revoke_all_for_user(self, user_id: UUID) -> int:
         stmt = (
@@ -61,5 +61,5 @@ class SessionRepository:
             .values(is_active=False)
         )
         result = await self._session.execute(stmt)
-        await self._session.commit()
+        await self._session.flush()
         return result.rowcount

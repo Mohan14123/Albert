@@ -4,7 +4,7 @@ from uuid import UUID
 
 from app.database.models.memory import Memory
 from app.repositories.memory_repository import MemoryRepository
-from app.services.events import EventDispatcher
+from app.services import EventDispatcher
 
 logger = logging.getLogger(__name__)
 

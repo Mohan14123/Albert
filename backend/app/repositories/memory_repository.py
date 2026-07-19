@@ -16,7 +16,7 @@ class MemoryRepository:
     ) -> Memory:
         memory = Memory(user_id=user_id, content=content, category=category)
         self._session.add(memory)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(memory)
         return memory
 

@@ -26,7 +26,7 @@ class PluginRepository:
             capabilities=capabilities or {},
         )
         self._session.add(plugin)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(plugin)
         return plugin
 
@@ -47,4 +47,4 @@ class PluginRepository:
             .values(status=status)
         )
         await self._session.execute(stmt)
-        await self._session.commit()
+        await self._session.flush()

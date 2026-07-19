@@ -25,7 +25,7 @@ class EventStoreRepository:
             aggregate_id=aggregate_id,
         )
         self._session.add(event)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(event)
         return event
 
@@ -33,4 +33,4 @@ class EventStoreRepository:
         event = await self._session.get(EventStore, event_id)
         if event:
             event.processed_at = datetime.now(UTC)
-            await self._session.commit()
+            await self._session.flush()
