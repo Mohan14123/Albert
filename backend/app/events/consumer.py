@@ -1,6 +1,7 @@
 """Base consumer for RabbitMQ domain events."""
 
 import abc
+import asyncio
 import logging
 from typing import Any
 from uuid import UUID
@@ -9,6 +10,7 @@ import aio_pika
 import redis.asyncio as redis
 
 from app.config.settings import settings
+from app.events.publisher import EventPublisher
 from app.events.schemas import DomainEvent
 from app.events.exchanges import DOMAIN_EXCHANGE, EXCHANGE_TYPE
 
@@ -31,6 +33,7 @@ class BaseConsumer(abc.ABC):
         self._connection: aio_pika.abc.AbstractRobustConnection | None = None
         self._channel: aio_pika.abc.AbstractChannel | None = None
         self._redis: redis.Redis | None = None
+        self._publisher: EventPublisher = EventPublisher()
 
     async def connect(self) -> None:
         self._connection = await aio_pika.connect_robust(settings.rabbitmq_url)
@@ -59,9 +62,20 @@ class BaseConsumer(abc.ABC):
         await queue.bind(exchange, routing_key=self.routing_key)
         
         self._redis = redis.from_url(settings.redis_url)
+        await self._publisher.connect()
 
         await queue.consume(self._process_message)
         logger.info("Started consuming from %s (routing_key: %s)", self.queue_name, self.routing_key)
+
+    async def start(self) -> None:
+        """Connect and run indefinitely until interrupted."""
+        await self.connect()
+        try:
+            await asyncio.Future()  # block forever
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            pass
+        finally:
+            await self.close()
 
     async def _process_message(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
         async with message.process(requeue=False, ignore_processed=True):
@@ -116,7 +130,9 @@ class BaseConsumer(abc.ABC):
         pass
 
     async def close(self) -> None:
+        if self._publisher:
+            await self._publisher.close()
         if self._connection:
             await self._connection.close()
         if self._redis:
-            await self._redis.close()
+            await self._redis.aclose()
