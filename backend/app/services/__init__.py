@@ -17,4 +17,17 @@ class EventDispatcher(Protocol):
     ) -> None: ...
 
 
-__all__ = ["EventDispatcher"]
+class NullEventDispatcher:
+    """No-op dispatcher used in tests — silently discards all events."""
+
+    async def publish(
+        self,
+        routing_key: str,
+        payload: Mapping[str, object],
+        *,
+        correlation_id: UUID | None = None,
+    ) -> None:
+        pass  # intentional no-op
+
+
+__all__ = ["EventDispatcher", "NullEventDispatcher"]
