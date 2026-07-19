@@ -89,6 +89,31 @@ class AIWorker(BaseConsumer):
                 "AIWorker published message.generated for message_id=%s", message_id
             )
 
+            # Extract and store memories if AI provided them
+            extracted_memories = result.get("metadata", {}).get(
+                "extracted_memories", []
+            )
+            if extracted_memories:
+                from app.repositories.memory_repository import MemoryRepository
+                from app.services.memory_service import MemoryService
+
+                async with async_session() as session:
+                    memory_service = MemoryService(
+                        memories=MemoryRepository(session),
+                        events=self._publisher,
+                    )
+                    for mem in extracted_memories:
+                        await memory_service.store_memory(
+                            user_id=UUID(user_id),
+                            content=mem.get("content"),
+                            category=mem.get("category", "general"),
+                        )
+                logger.info(
+                    "AIWorker stored %d memories for user_id=%s",
+                    len(extracted_memories),
+                    user_id,
+                )
+
         except httpx.HTTPStatusError as exc:
             logger.error(
                 "AI service returned error %s for message_id=%s: %s",

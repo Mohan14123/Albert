@@ -19,4 +19,13 @@ class NotificationConsumer(BaseConsumer):
 
     async def on_message(self, event: DomainEvent) -> None:
         logger.info("Notification delivery placeholder for event: %s", event.event_name)
-        pass
+        from app.database.engine import async_session
+        from app.repositories.event_store_repository import EventStoreRepository
+
+        async with async_session() as session:
+            repo = EventStoreRepository(session)
+            await repo.create(
+                event_name=event.event_name,
+                routing_key=self.routing_key,
+                payload=event.payload,
+            )

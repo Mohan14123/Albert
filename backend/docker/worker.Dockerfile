@@ -1,13 +1,14 @@
-# Stage 1: Build dependencies
-FROM python:3.12-slim as builder
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Stage 2: Run application
 FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
 WORKDIR /app
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY app /app/app
-CMD ["celery", "-A", "app.workers", "worker", "--loglevel=info"]
+
+RUN pip install --no-cache-dir uv
+
+COPY pyproject.toml ./
+COPY app ./app
+RUN uv pip install --system -e .
+
+CMD ["python", "-m", "app.workers.scheduler"]

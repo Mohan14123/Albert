@@ -85,3 +85,11 @@ async def version() -> dict:
         "version": settings.app_version,
         "environment": settings.environment,
     }
+
+
+@router.get("/metrics")
+async def metrics() -> dict:
+    """Return simple application metrics."""
+    from app.middleware.metrics import SimpleMetricsMiddleware
+
+    return SimpleMetricsMiddleware.get_metrics()
