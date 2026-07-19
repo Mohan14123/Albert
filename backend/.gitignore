@@ -1,0 +1,29 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Python caches (if used)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.venv/
+pip-wheel-metadata/
+*.egg-info/
+.coverage
+coverage.xml
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
