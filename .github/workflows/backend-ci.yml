@@ -12,6 +12,17 @@ on:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
 
+env:
+  ENVIRONMENT: "local"
+  DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+  POSTGRES_DB: "test"
+  POSTGRES_USER: "test"
+  POSTGRES_PASSWORD: "test"
+  REDIS_URL: "redis://localhost:6379/0"
+  RABBITMQ_URL: "amqp://guest:guest@localhost:5672/"
+  JWT_SECRET: "super-secret-key-that-is-at-least-32-characters-long"
+  TOKEN_ENCRYPTION_KEY: "sG6n4hOhuaZGwJxdngCDiXN7DkVaz5COU8ApKQ_i8Z4="
+  AI_SERVICE_URL: "http://localhost:8000"
 jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
