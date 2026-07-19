@@ -2,12 +2,16 @@
 
 import asyncio
 import logging
+from uuid import UUID
 
 import httpx
 
 from app.config.settings import settings
+from app.database.engine import async_session
+from app.database.models.message import Message
 from app.events.consumer import BaseConsumer
 from app.events.schemas import DomainEvent
+from app.repositories.message_repository import MessageRepository
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +35,29 @@ class AIWorker(BaseConsumer):
             chat_id,
         )
 
+        async with async_session() as session:
+            message = await session.get(Message, UUID(message_id))
+            if not message:
+                logger.error("Message %s not found in DB", message_id)
+                return
+
+            repo = MessageRepository(session)
+            items, _ = await repo.get_by_chat(UUID(chat_id), page=1, limit=50)
+
+        history = [
+            {"role": m.role, "content": m.content}
+            for m in items
+            if str(m.id) != message_id and m.status == "completed"
+        ]
+
+        chat_request = {
+            "conversation_id": chat_id,
+            "user_id": user_id,
+            "message": message.content,
+            "history": history,
+            "metadata": {"correlation_id": str(event.correlation_id)},
+        }
+
         try:
             async with httpx.AsyncClient(timeout=settings.ai_request_timeout) as client:
                 headers = {}
@@ -40,13 +67,8 @@ class AIWorker(BaseConsumer):
                     )
 
                 response = await client.post(
-                    f"{settings.ai_service_url}/process",
-                    json={
-                        "message_id": message_id,
-                        "chat_id": chat_id,
-                        "user_id": user_id,
-                        "correlation_id": str(event.correlation_id),
-                    },
+                    f"{settings.ai_service_url}/api/v1/chat",
+                    json=chat_request,
                     headers=headers,
                 )
                 response.raise_for_status()
@@ -59,7 +81,7 @@ class AIWorker(BaseConsumer):
                     "message_id": message_id,
                     "chat_id": chat_id,
                     "content": result.get("content", ""),
-                    "token_count": result.get("token_count"),
+                    "token_count": result.get("metadata", {}).get("token_count"),
                 },
                 correlation_id=event.correlation_id,
             )

@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """API endpoints exposing the AI assistant orchestrator."""
+
+from __future__ import annotations
 
 import json
 import logging
@@ -15,7 +15,14 @@ from ..gateway import MultiProviderGateway
 from ..planner import LLMIntentPlanner
 from ..context import DefaultContextBuilder
 from ..memory import InMemoryMemoryAdapter
-from ..tools import ToolRegistry, DefaultToolExecutor, CalculatorTool, SearchTool, GmailTool, CalendarTool
+from ..tools import (
+    ToolRegistry,
+    DefaultToolExecutor,
+    CalculatorTool,
+    SearchTool,
+    GmailTool,
+    CalendarTool,
+)
 from ..responses import DefaultResponseFormatter
 from ..prompts import PromptManager
 
@@ -32,21 +39,21 @@ def get_orchestrator() -> AIOrchestrator:
     """
     config = AIConfig.from_env()
     pm = PromptManager()
-    
+
     gateway = MultiProviderGateway(config)
     planner = LLMIntentPlanner(gateway, pm)
     memory_adapter = InMemoryMemoryAdapter()
-    
+
     registry = ToolRegistry()
     registry.register(CalculatorTool())
     registry.register(SearchTool())
     registry.register(GmailTool())
     registry.register(CalendarTool())
     executor = DefaultToolExecutor(registry)
-    
+
     context_builder = DefaultContextBuilder(pm)
     formatter = DefaultResponseFormatter()
-    
+
     dependencies = OrchestratorDependencies(
         planner=planner,
         memory_retriever=memory_adapter,
@@ -54,7 +61,7 @@ def get_orchestrator() -> AIOrchestrator:
         context_assembler=context_builder,
         gateway=gateway,
         response_formatter=formatter,
-        memory_writer=memory_adapter
+        memory_writer=memory_adapter,
     )
 
     logger.info("AIOrchestrator initialized (provider=%s)", config.default_provider)
@@ -66,12 +73,13 @@ async def chat(
     request: Request,
     payload: ChatRequest,
     accept: str | None = Header(default="application/json"),
-    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+    orchestrator: AIOrchestrator = Depends(get_orchestrator),
 ) -> Any:
     """Coordinate the AI assistant pipeline for complete or streaming chat requests."""
-    
+
     # 1. Check if the client requested a stream (Server-Sent Events)
     if accept and "text/event-stream" in accept:
+
         async def event_generator() -> AsyncGenerator[str, None]:
             try:
                 async for event in orchestrator.stream(payload):
@@ -89,8 +97,8 @@ async def chat(
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"
-            }
+                "X-Accel-Buffering": "no",
+            },
         )
 
     # 2. Return a complete, formatted JSON response
@@ -101,14 +109,14 @@ async def chat(
             "metadata": response.metadata,
             "trace": {
                 "conversation_id": trace.conversation_id,
-                "completed_steps": trace.completed_steps
-            }
+                "completed_steps": trace.completed_steps,
+            },
         }
     except Exception as e:
         logger.exception("Error in AI respond endpoint")
         raise HTTPException(
             status_code=500,
-            detail={"error": str(e), "message": "Failed to generate AI response"}
+            detail={"error": str(e), "message": "Failed to generate AI response"},
         )
 
 

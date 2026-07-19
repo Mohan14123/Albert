@@ -47,7 +47,9 @@ class AIOrchestrator:
 
         self._dependencies = dependencies
 
-    async def respond(self, request: ChatRequest) -> tuple[AssistantResponse, OrchestrationTrace]:
+    async def respond(
+        self, request: ChatRequest
+    ) -> tuple[AssistantResponse, OrchestrationTrace]:
         """Run a complete non-streaming pipeline for ``request``.
 
         Memory is saved only after formatting succeeds, preventing a failed
@@ -56,19 +58,29 @@ class AIOrchestrator:
         try:
             plan, context, steps = await self._prepare(request)
         except Exception as exc:
-            logger.exception("Pipeline preparation failed for conversation %s", request.conversation_id)
+            logger.exception(
+                "Pipeline preparation failed for conversation %s",
+                request.conversation_id,
+            )
             raise AIError(f"Pipeline preparation failed: {exc}") from exc
 
         try:
             model_result = await self._dependencies.gateway.generate(context)
         except Exception as exc:
-            logger.exception("LLM generation failed for conversation %s", request.conversation_id)
+            logger.exception(
+                "LLM generation failed for conversation %s", request.conversation_id
+            )
             raise AIError(f"LLM generation failed: {exc}") from exc
 
         try:
-            response = await self._dependencies.response_formatter.format(model_result, plan)
+            response = await self._dependencies.response_formatter.format(
+                model_result, plan
+            )
         except Exception as exc:
-            logger.exception("Response formatting failed for conversation %s", request.conversation_id)
+            logger.exception(
+                "Response formatting failed for conversation %s",
+                request.conversation_id,
+            )
             raise AIError(f"Response formatting failed: {exc}") from exc
 
         try:
@@ -76,7 +88,11 @@ class AIOrchestrator:
             steps.append("memory_save")
         except Exception as exc:
             # Memory save failure should not break the response
-            logger.warning("Memory save failed (non-fatal) for conversation %s: %s", request.conversation_id, exc)
+            logger.warning(
+                "Memory save failed (non-fatal) for conversation %s: %s",
+                request.conversation_id,
+                exc,
+            )
             steps.append("memory_save_failed")
 
         return response, OrchestrationTrace(request.conversation_id, tuple(steps))
@@ -92,7 +108,11 @@ class AIOrchestrator:
         collected_content: list[str] = []
         try:
             async for event in self._dependencies.gateway.stream(context):
-                formatted_event = await self._dependencies.response_formatter.format_stream_event(event)
+                formatted_event = (
+                    await self._dependencies.response_formatter.format_stream_event(
+                        event
+                    )
+                )
                 if formatted_event is None:
                     continue
                 content = formatted_event.get("delta")
@@ -100,7 +120,10 @@ class AIOrchestrator:
                     collected_content.append(content)
                 yield formatted_event
         except Exception as exc:
-            logger.exception("Streaming generation failed for conversation %s", request.conversation_id)
+            logger.exception(
+                "Streaming generation failed for conversation %s",
+                request.conversation_id,
+            )
             yield {"event": "error", "error": str(exc)}
             return
 

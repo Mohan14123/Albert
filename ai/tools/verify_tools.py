@@ -16,6 +16,7 @@ from ai.tools import (
     CalendarTool,
 )
 
+
 async def main():
     print("Initializing Tool Registry...")
     registry = ToolRegistry()
@@ -40,25 +41,25 @@ async def main():
             PlanStep(
                 step_id="step_math",
                 tool_name="calculator.compute",
-                args={"expression": "3 * 5 + 4"}
+                args={"expression": "3 * 5 + 4"},
             ),
             PlanStep(
                 step_id="step_search",
                 tool_name="search.web",
-                args={"query": "weather in Munich"}
-            )
-        ]
+                args={"query": "weather in Munich"},
+            ),
+        ],
     )
 
     request = ChatRequest(
         conversation_id="conv-789",
         user_id="user-789",
-        message="Compute 3*5+4 and search weather in Munich."
+        message="Compute 3*5+4 and search weather in Munich.",
     )
 
     print("Running execute()...")
     results = await executor.execute(request, plan)
-    
+
     print(f"Executed steps. Results returned: {len(results)}")
     for i, res in enumerate(results):
         print(f"  Result {i+1}:")
@@ -67,9 +68,9 @@ async def main():
         print(f"    Output: {res['result']}")
         print(f"    Error: {res['error']}")
 
-    assert results[0]['success'] is True, "Error: Calculator execution failed"
-    assert results[0]['result'] == 19, "Error: Calculator math result is wrong"
-    assert "Munich" in results[1]['result'], "Error: Search execution output wrong"
+    assert results[0]["success"] is True, "Error: Calculator execution failed"
+    assert results[0]["result"] == 19, "Error: Calculator math result is wrong"
+    assert "Munich" in results[1]["result"], "Error: Search execution output wrong"
 
     # 2. Error handling test: dangerous expression and unregistered tool
     print("\nTesting Error Handling in execution...")
@@ -80,18 +81,14 @@ async def main():
             PlanStep(
                 step_id="step_dangerous",
                 tool_name="calculator.compute",
-                args={"expression": "__import__('os').system('ls')"}
+                args={"expression": "__import__('os').system('ls')"},
             ),
-            PlanStep(
-                step_id="step_missing",
-                tool_name="missing.tool",
-                args={}
-            )
-        ]
+            PlanStep(step_id="step_missing", tool_name="missing.tool", args={}),
+        ],
     )
 
     err_results = await executor.execute(request, erroneous_plan)
-    
+
     print(f"Executed erroneous plan. Results returned: {len(err_results)}")
     for i, res in enumerate(err_results):
         print(f"  Result {i+1}:")
@@ -100,10 +97,15 @@ async def main():
         print(f"    Output: {res['result']}")
         print(f"    Error: {res['error']}")
 
-    assert err_results[0]['success'] is False, "Error: Dangerous math execution should have failed"
-    assert err_results[1]['success'] is False, "Error: Unregistered tool should have failed"
+    assert (
+        err_results[0]["success"] is False
+    ), "Error: Dangerous math execution should have failed"
+    assert (
+        err_results[1]["success"] is False
+    ), "Error: Unregistered tool should have failed"
 
     print("\nSuccess! Tool Registry verified.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

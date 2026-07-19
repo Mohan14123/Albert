@@ -8,6 +8,7 @@ from ..orchestrator.contracts import MemoryRetriever, MemoryWriter
 from ..orchestrator.models import ChatRequest, AssistantResponse
 from .models import MemoryRecord
 
+
 class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
     """An in-memory stub implementation of MemoryRetriever and MemoryWriter.
 
@@ -23,14 +24,14 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
                 id=str(uuid.uuid4()),
                 type="preference",
                 content="User prefers concise answers",
-                created_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc),
             ),
             MemoryRecord(
                 id=str(uuid.uuid4()),
                 type="fact",
                 content="User lives in Munich, Germany",
-                created_at=datetime.now(timezone.utc)
-            )
+                created_at=datetime.now(timezone.utc),
+            ),
         ]
 
     async def retrieve(self, request: ChatRequest, plan: Any) -> Sequence[MemoryRecord]:
@@ -45,7 +46,9 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
                 matched.append(rec)
         return matched
 
-    async def save(self, request: ChatRequest, response: AssistantResponse, plan: Any) -> None:
+    async def save(
+        self, request: ChatRequest, response: AssistantResponse, plan: Any
+    ) -> None:
         """Parse response and user message to extract and persist new memory nodes."""
         msg_lower = request.message.lower()
         if "remember that" in msg_lower:
@@ -57,7 +60,7 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
                     id=str(uuid.uuid4()),
                     type="fact",
                     content=content,
-                    created_at=datetime.now(timezone.utc)
+                    created_at=datetime.now(timezone.utc),
                 )
                 self._records.append(new_record)
                 self._logger.info("Saved new memory record: %s", content[:50])

@@ -74,5 +74,7 @@ class MemoryWriter(ABC):
     """Persists approved memory candidates through an external adapter."""
 
     @abstractmethod
-    async def save(self, request: ChatRequest, response: AssistantResponse, plan: Any) -> None:
+    async def save(
+        self, request: ChatRequest, response: AssistantResponse, plan: Any
+    ) -> None:
         """Save durable memory after a successful response, if applicable."""
