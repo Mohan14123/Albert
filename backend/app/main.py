@@ -24,51 +24,14 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     setup_logging()
 
-    app = FastAPI(
-        title=settings.app_name,
-        version=settings.app_version,
-        description="Production-grade backend API for Albert AI Personal Assistant.",
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
-    )
-
-    # ── Middleware (outermost first) ──────────────────────
-    app.add_middleware(SecurityHeadersMiddleware)
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins or ["*"],
-        allow_credentials=settings.cors_allow_credentials,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    app.add_middleware(RequestLoggingMiddleware)
-
-    if settings.rate_limit_enabled:
-        app.add_middleware(RateLimitingMiddleware)
-
-    # ── Exception handlers ────────────────────────────────
-    add_exception_handlers(app)
-
-    # ── Routers ───────────────────────────────────────────
-    app.include_router(health.router, prefix="/api/v1")
-    app.include_router(auth.router, prefix="/api/v1")
-    app.include_router(users.router, prefix="/api/v1")
-    app.include_router(chats.router, prefix="/api/v1")
-    app.include_router(messages.router, prefix="/api/v1")
-    app.include_router(integrations.router, prefix="/api/v1")
-    app.include_router(ai.router, prefix="/internal")
-    app.include_router(providers.router, prefix="/webhooks")
-
     # ── Lifecycle hooks ───────────────────────────────────
-    @app.on_event("startup")
-    async def on_startup() -> None:
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
         logger.info("Starting Albert backend…")
         # Verify DB connection
         from sqlalchemy import text
-
         from app.database.engine import engine
 
         async with engine.connect() as conn:
@@ -100,9 +63,9 @@ def create_app() -> FastAPI:
             app.state.publisher = None
 
         logger.info("Albert backend ready on %s:%s", settings.host, settings.port)
-
-    @app.on_event("shutdown")
-    async def on_shutdown() -> None:
+        
+        yield  # application is running
+        
         logger.info("Shutting down Albert backend…")
         if getattr(app.state, "publisher", None) is not None:
             await app.state.publisher.close()
@@ -114,6 +77,45 @@ def create_app() -> FastAPI:
 
         await engine.dispose()
         logger.info("DB engine disposed")
+
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        description="Production-grade backend API for Albert AI Personal Assistant.",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        lifespan=lifespan,
+    )
+
+    # ── Middleware (outermost first) ──────────────────────
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins or ["*"],
+        allow_credentials=settings.cors_allow_credentials,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    app.add_middleware(RequestLoggingMiddleware)
+
+    if settings.rate_limit_enabled:
+        app.add_middleware(RateLimitingMiddleware)
+
+    # ── Exception handlers ────────────────────────────────
+    add_exception_handlers(app)
+
+    # ── Routers ───────────────────────────────────────────
+    app.include_router(health.router, prefix="/api/v1")
+    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(users.router, prefix="/api/v1")
+    app.include_router(chats.router, prefix="/api/v1")
+    app.include_router(messages.router, prefix="/api/v1")
+    app.include_router(integrations.router, prefix="/api/v1")
+    app.include_router(ai.router, prefix="/internal")
+    app.include_router(providers.router, prefix="/webhooks")
 
     return app
 
