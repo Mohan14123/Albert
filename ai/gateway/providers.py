@@ -7,6 +7,8 @@ import logging
 import urllib.request
 import urllib.error
 import asyncio
+import time
+import random
 from abc import ABC, abstractmethod
 from typing import Any, AsyncIterator, Sequence
 
@@ -23,6 +25,67 @@ _DEFAULT_GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 _DEFAULT_ANTHROPIC_VERSION = "2023-06-01"
 _DEFAULT_TIMEOUT = 30
 _DEFAULT_MAX_TOKENS = 1024
+
+
+# Retry configuration defaults
+_DEFAULT_MAX_RETRIES = 3
+_DEFAULT_RETRY_BASE_DELAY = 1.0  # seconds
+_DEFAULT_RETRY_MAX_DELAY = 30.0  # seconds
+_RETRYABLE_HTTP_CODES = {429, 500, 502, 503, 504}
+
+
+def _retry_request(
+    make_request_fn,
+    payload: dict,
+    *,
+    max_retries: int = _DEFAULT_MAX_RETRIES,
+    base_delay: float = _DEFAULT_RETRY_BASE_DELAY,
+    max_delay: float = _DEFAULT_RETRY_MAX_DELAY,
+) -> dict:
+    """Execute an HTTP request function with exponential backoff and jitter.
+
+    Retries on transient HTTP errors (429, 5xx) and connection failures.
+    Non-retryable errors (4xx except 429) are raised immediately.
+    """
+    last_exception: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            return make_request_fn(payload)
+        except GatewayError as exc:
+            last_exception = exc
+            error_msg = str(exc)
+            # Check if HTTP error code is retryable
+            is_retryable = False
+            for code in _RETRYABLE_HTTP_CODES:
+                if f"HTTP error {code}" in error_msg or f"error {code}" in error_msg:
+                    is_retryable = True
+                    break
+            # Also retry on connection failures
+            if "connection failed" in error_msg.lower() or "API connection failed" in error_msg:
+                is_retryable = True
+
+            if not is_retryable or attempt >= max_retries:
+                raise
+
+            delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), max_delay)
+            logger.warning(
+                "Request failed (attempt %d/%d), retrying in %.1fs: %s",
+                attempt + 1, max_retries + 1, delay, exc,
+            )
+            time.sleep(delay)
+        except Exception as exc:
+            # Non-GatewayError exceptions (unexpected) — retry on connection issues
+            last_exception = exc
+            if attempt >= max_retries:
+                raise GatewayError(f"Request failed after {max_retries + 1} attempts: {exc}") from exc
+            delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), max_delay)
+            logger.warning(
+                "Unexpected error (attempt %d/%d), retrying in %.1fs: %s",
+                attempt + 1, max_retries + 1, delay, exc,
+            )
+            time.sleep(delay)
+    # Should never reach here, but just in case
+    raise GatewayError(f"Request failed after {max_retries + 1} attempts") from last_exception
 
 
 class LLMProvider(ABC):
@@ -44,9 +107,18 @@ class MockProvider(LLMProvider):
 
     async def generate(self, context: Any) -> dict[str, Any]:
         prompt = str(context)
+        content = f"[Mock LLM response for context: '{prompt[:40]}...']"
         return {
-            "content": f"[Mock LLM response for context: '{prompt[:40]}...']",
-            "provider": "mock"
+            "content": content,
+            "provider": "mock",
+            "provider_metadata": {
+                "model": "mock-v1",
+                "usage": {
+                    "prompt_tokens": len(prompt) // 4,
+                    "completion_tokens": len(content) // 4,
+                    "total_tokens": (len(prompt) + len(content)) // 4,
+                }
+            }
         }
 
     async def stream(self, context: Any) -> AsyncIterator[dict[str, Any]]:
@@ -95,7 +167,7 @@ class OpenAICompatibleProvider(LLMProvider):
             "messages": messages,
             "stream": False
         }
-        res = await asyncio.to_thread(self._make_request, payload)
+        res = await asyncio.to_thread(_retry_request, self._make_request, payload)
         try:
             return {
                 "content": res["choices"][0]["message"]["content"],
@@ -229,7 +301,7 @@ class ClaudeProvider(LLMProvider):
         if system_text:
             payload["system"] = system_text
 
-        res = await asyncio.to_thread(self._make_request, payload)
+        res = await asyncio.to_thread(_retry_request, self._make_request, payload)
         try:
             return {
                 "content": res["content"][0]["text"],
@@ -365,7 +437,7 @@ class GeminiProvider(LLMProvider):
                 "parts": [{"text": system_text}]
             }
 
-        res = await asyncio.to_thread(self._make_request, payload)
+        res = await asyncio.to_thread(_retry_request, self._make_request, payload)
         try:
             return {
                 "content": res["candidates"][0]["content"]["parts"][0]["text"],
