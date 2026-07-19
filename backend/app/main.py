@@ -5,11 +5,23 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, chats, health, integrations, messages, users
+from app.api.v1 import (
+    auth,
+    chats,
+    google_auth,
+    health,
+    integrations,
+    memory,
+    messages,
+    plugins,
+    users,
+)
 from app.api.webhooks import providers
 from app.config.settings import settings
+from app.core.logging import LoggingMiddleware
 from app.middleware.exception_handler import add_exception_handlers
 from app.middleware.logging import RequestLoggingMiddleware, setup_logging
+from app.middleware.metrics import SimpleMetricsMiddleware
 from app.middleware.rate_limiting import RateLimitingMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
@@ -101,6 +113,9 @@ def create_app() -> FastAPI:
 
     app.add_middleware(RequestLoggingMiddleware)
 
+    app.add_middleware(SimpleMetricsMiddleware)
+    app.add_middleware(LoggingMiddleware)
+
     if settings.rate_limit_enabled:
         app.add_middleware(RateLimitingMiddleware)
 
@@ -110,9 +125,12 @@ def create_app() -> FastAPI:
     # ── Routers ───────────────────────────────────────────
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(google_auth.router, prefix="/api/v1")
     app.include_router(users.router, prefix="/api/v1")
     app.include_router(chats.router, prefix="/api/v1")
     app.include_router(messages.router, prefix="/api/v1")
+    app.include_router(memory.router, prefix="/api/v1")
+    app.include_router(plugins.router, prefix="/api/v1")
     app.include_router(integrations.router, prefix="/api/v1")
     app.include_router(providers.router, prefix="/webhooks")
 

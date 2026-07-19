@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+from app.config.settings import settings
 from app.events.consumer import BaseConsumer
 from app.events.schemas import DomainEvent
 
@@ -42,7 +43,34 @@ class NotificationWorker(BaseConsumer):
             user_id,
             email,
         )
-        # TODO: integrate with SMTP / SendGrid / Firebase push notifications
+        if settings.smtp_host and settings.smtp_username and settings.smtp_password:
+            from email.message import EmailMessage
+
+            import aiosmtplib
+
+            msg = EmailMessage()
+            msg["From"] = settings.smtp_from or "noreply@albert.ai"
+            msg["To"] = email
+            msg["Subject"] = "Welcome to Albert AI"
+            msg.set_content(
+                f"Hi {email},\n\nWelcome to Albert AI! We're glad to have you."
+            )
+
+            try:
+                await aiosmtplib.send(
+                    msg,
+                    hostname=settings.smtp_host,
+                    port=settings.smtp_port,
+                    username=settings.smtp_username,
+                    password=settings.smtp_password.get_secret_value(),
+                    use_tls=(settings.smtp_port == 465),
+                    start_tls=(settings.smtp_port == 587),
+                )
+                logger.info("Welcome email sent to %s", email)
+            except Exception as e:
+                logger.error("Failed to send welcome email to %s: %s", email, e)
+        else:
+            logger.info("SMTP settings not configured, skipping email delivery.")
 
     async def _handle_integration_connected(self, event: DomainEvent) -> None:
         """Notify user that their integration was connected successfully."""
@@ -53,7 +81,7 @@ class NotificationWorker(BaseConsumer):
             provider,
             user_id,
         )
-        # TODO: send in-app or email notification
+        # We can implement similarly if we wanted an email. For now, just logging.
 
 
 async def run_notification_worker() -> None:

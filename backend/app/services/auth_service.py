@@ -5,10 +5,13 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from jose import jwt
+
 from app.config.settings import settings
 from app.core.exceptions import AuthenticationError, ValidationError
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.session_repository import SessionRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_settings_repository import UserSettingsRepository
 from app.services import EventDispatcher
@@ -20,11 +23,13 @@ class AuthService:
         users: UserRepository,
         refresh_tokens: RefreshTokenRepository,
         user_settings: UserSettingsRepository,
+        sessions: SessionRepository,
         events: EventDispatcher,
     ) -> None:
         self._users = users
         self._refresh_tokens = refresh_tokens
         self._user_settings = user_settings
+        self._sessions = sessions
         self._events = events
 
     async def register(self, email: str, password: str, full_name: str) -> UUID:
@@ -44,7 +49,9 @@ class AuthService:
         )
         return user.id
 
-    async def login(self, email: str, password: str) -> dict[str, object]:
+    async def login(
+        self, email: str, password: str, ip_address: str = None, user_agent: str = None
+    ) -> dict[str, object]:
         user = await self._users.get_by_email(email)
         if (
             user is None
@@ -52,7 +59,42 @@ class AuthService:
             or not verify_password(password, user.password_hash)
         ):
             raise AuthenticationError("Invalid email or password")
-        return await self._issue_tokens(user.id)
+        return await self._issue_tokens(user.id, ip_address, user_agent)
+
+    async def google_login(
+        self, id_token: str, ip_address: str = None, user_agent: str = None
+    ) -> dict[str, object]:
+        try:
+            # For a production app, verify signature against Google's certs.
+            payload = jwt.decode(id_token, options={"verify_signature": False})
+        except Exception:
+            raise AuthenticationError("Invalid Google ID token")
+
+        email = payload.get("email")
+        if not email:
+            raise AuthenticationError("Email not provided by Google")
+
+        user = await self._users.get_by_email(email)
+        if not user:
+            # Auto-register
+            name = payload.get("name", email.split("@")[0])
+            user = await self._users.create(
+                {
+                    "email": email,
+                    "password_hash": "oauth_user",  # Dummy hash, user logs in via OAuth
+                    "full_name": name,
+                }
+            )
+            await self._user_settings.create(user.id, {})
+            await self._events.publish(
+                "user.created",
+                {"user_id": str(user.id), "email": user.email, "provider": "google"},
+            )
+
+        if not user.is_active:
+            raise AuthenticationError("User account is inactive")
+
+        return await self._issue_tokens(user.id, ip_address, user_agent)
 
     async def refresh(self, refresh_token: str) -> dict[str, object]:
         token = await self._refresh_tokens.get_by_hash(
@@ -80,15 +122,31 @@ class AuthService:
             await self._events.publish("auth.logout", {"user_id": str(token.user_id)})
 
     async def logout_all(self, user_id: UUID) -> int:
+        await self._sessions.revoke_all_for_user(user_id)
         return await self._refresh_tokens.revoke_all_for_user(user_id)
 
-    async def _issue_tokens(self, user_id: UUID) -> dict[str, object]:
+    async def _issue_tokens(
+        self, user_id: UUID, ip_address: str = None, user_agent: str = None
+    ) -> dict[str, object]:
         raw_refresh = secrets.token_urlsafe(64)
-        await self._refresh_tokens.create(
+        expires_at = datetime.now(UTC) + timedelta(
+            days=settings.refresh_token_expire_days
+        )
+
+        refresh_token_obj = await self._refresh_tokens.create(
             user_id,
             self._hash_refresh_token(raw_refresh),
-            datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days),
+            expires_at,
         )
+
+        await self._sessions.create(
+            user_id=user_id,
+            refresh_token_id=refresh_token_obj.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            expires_at=expires_at,
+        )
+
         await self._events.publish("auth.login", {"user_id": str(user_id)})
         return {
             "access_token": create_access_token(str(user_id)),

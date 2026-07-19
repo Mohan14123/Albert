@@ -15,9 +15,11 @@ from app.core.responses import success_response
 from app.database.models.user import User
 from app.events.publisher import EventPublisher
 from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.repositories.session_repository import SessionRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_settings_repository import UserSettingsRepository
 from app.services.auth_service import AuthService
+from app.services.events import EventDispatcher
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -28,7 +30,8 @@ def _get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
         users=UserRepository(db),
         refresh_tokens=RefreshTokenRepository(db),
         user_settings=UserSettingsRepository(db),
-        events=EventPublisher(),
+        sessions=SessionRepository(db),
+        events=EventDispatcher(EventPublisher()),
     )
 
 
