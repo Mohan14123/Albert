@@ -58,7 +58,13 @@ class AuthService:
         token = await self._refresh_tokens.get_by_hash(
             self._hash_refresh_token(refresh_token)
         )
-        if token is None or token.revoked or token.expires_at <= datetime.now(UTC):
+        if token is None or token.revoked:
+            raise AuthenticationError("Refresh token is invalid or expired")
+        # Normalize expires_at for comparison — SQLite returns naive datetimes
+        expires_at = token.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at <= datetime.now(UTC):
             raise AuthenticationError("Refresh token is invalid or expired")
         await self._refresh_tokens.revoke(token.id)
         result = await self._issue_tokens(token.user_id)
