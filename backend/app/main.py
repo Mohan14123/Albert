@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
         logger.info("Starting Albert backend…")
         # Verify DB connection
         from sqlalchemy import text
+
         from app.database.engine import engine
 
         async with engine.connect() as conn:

@@ -3,14 +3,13 @@
 import asyncio
 import logging
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.config.settings import settings
 from app.core.security import get_password_hash
-from app.database.models.user import User
 from app.database.models.chat import Chat
 from app.database.models.message import Message
+from app.database.models.user import User
 from app.database.models.user_settings import UserSettings
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,10 +21,9 @@ TEST_NAME = "Albert Test User"
 
 async def seed_db() -> None:
     engine = create_async_engine(str(settings.database_url), echo=False)
-    Session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async_session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-    async with Session() as session:
-        async with session.begin():
+    async with async_session_factory() as session, session.begin():
             # ── Create test user ────────────────────────────────
             from sqlalchemy import select
             existing = await session.scalar(select(User).where(User.email == TEST_EMAIL))

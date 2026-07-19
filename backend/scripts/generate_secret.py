@@ -1,5 +1,6 @@
 import secrets
 
+
 def generate_keys():
     jwt_secret = secrets.token_hex(32)
     token_encryption_key = secrets.token_hex(32)
