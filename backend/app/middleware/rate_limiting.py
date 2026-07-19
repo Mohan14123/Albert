@@ -1,11 +1,10 @@
-import time
-from typing import Callable
+from collections.abc import Callable
+
 from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
 from redis.asyncio import Redis, from_url
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config.settings import settings
-from app.core.exceptions import RateLimitedError
 from app.core.responses import error_response
 
 # Global redis client (initialized in main.py lifespan)
@@ -50,33 +49,37 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
         # Enforce rate limit
         try:
             redis = await get_redis_client()
-            
+
             # Atomic increment and expire
             async with redis.pipeline(transaction=True) as pipe:
                 pipe.incr(key)
                 pipe.ttl(key)
                 results = await pipe.execute()
-                
+
             current_count = results[0]
             ttl = results[1]
-            
-            if ttl == -1: # No expiration set
+
+            if ttl == -1:  # No expiration set
                 await redis.expire(key, window)
-                
+
             if current_count > limit:
                 import json
+
                 return Response(
-                    content=json.dumps(error_response("RATE_LIMIT_EXCEEDED", "Too many requests")),
+                    content=json.dumps(
+                        error_response("RATE_LIMIT_EXCEEDED", "Too many requests")
+                    ),
                     status_code=429,
                     media_type="application/json",
-                    headers={"Retry-After": str(ttl if ttl > 0 else window)}
+                    headers={"Retry-After": str(ttl if ttl > 0 else window)},
                 )
-                
+
         except Exception as e:
             import logging
+
             logger = logging.getLogger("app.access")
             logger.error(f"Rate limiter error: {e}")
             # If redis fails, we fail open (allow the request)
-            
+
         response = await call_next(request)
         return response

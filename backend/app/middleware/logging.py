@@ -1,15 +1,18 @@
-import time
-import uuid
 import json
 import logging
-from typing import Callable
+import time
+import uuid
+from collections.abc import Callable
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("app.access")
 
+
 class StructuredLogFormatter(logging.Formatter):
     """Custom JSON formatter for structured logging."""
+
     def format(self, record: logging.LogRecord) -> str:
         log_obj = {
             "timestamp": self.formatTime(record, self.datefmt),
@@ -30,7 +33,7 @@ class StructuredLogFormatter(logging.Formatter):
             log_obj["duration_ms"] = record.duration_ms
         if hasattr(record, "client_ip"):
             log_obj["client_ip"] = record.client_ip
-            
+
         return json.dumps(log_obj)
 
 
@@ -38,7 +41,7 @@ def setup_logging():
     """Initialize structured logging."""
     handler = logging.StreamHandler()
     handler.setFormatter(StructuredLogFormatter())
-    
+
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(handler)
@@ -46,20 +49,20 @@ def setup_logging():
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware to log requests, calculate duration, and inject Request ID."""
-    
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Generate or extract Request ID
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-        
+
         # Attach request_id to request state so other parts of the app can use it
         request.state.request_id = request_id
 
         start_time = time.perf_counter()
-        
+
         try:
             response = await call_next(request)
             duration_ms = (time.perf_counter() - start_time) * 1000
-            
+
             # Log the success request
             logger.info(
                 f"{request.method} {request.url.path} {response.status_code}",
@@ -70,16 +73,16 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     "status_code": response.status_code,
                     "duration_ms": round(duration_ms, 2),
                     "client_ip": request.client.host if request.client else None,
-                }
+                },
             )
-            
+
             # Inject Request ID into response headers
             response.headers["X-Request-ID"] = request_id
             return response
-            
+
         except Exception as e:
             duration_ms = (time.perf_counter() - start_time) * 1000
-            
+
             # Log the failed request
             logger.error(
                 f"{request.method} {request.url.path} 500 - {str(e)}",
@@ -91,6 +94,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     "duration_ms": round(duration_ms, 2),
                     "client_ip": request.client.host if request.client else None,
                 },
-                exc_info=True
+                exc_info=True,
             )
             raise
