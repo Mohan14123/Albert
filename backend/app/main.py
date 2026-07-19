@@ -5,7 +5,6 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.internal import ai
 from app.api.v1 import auth, chats, health, integrations, messages, users
 from app.api.webhooks import providers
 from app.config.settings import settings
@@ -115,7 +114,6 @@ def create_app() -> FastAPI:
     app.include_router(chats.router, prefix="/api/v1")
     app.include_router(messages.router, prefix="/api/v1")
     app.include_router(integrations.router, prefix="/api/v1")
-    app.include_router(ai.router, prefix="/internal")
     app.include_router(providers.router, prefix="/webhooks")
 
     return app
