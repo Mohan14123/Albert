@@ -7,18 +7,24 @@ from typing import Any, Sequence
 from ..orchestrator.contracts import MemoryRetriever, MemoryWriter
 from ..orchestrator.models import ChatRequest, AssistantResponse
 from .models import MemoryRecord
+from .compressor import MemoryCompressor
+
+logger = logging.getLogger(__name__)
+
 
 
 class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
     """An in-memory stub implementation of MemoryRetriever and MemoryWriter.
 
-    This serves as a developer contract adapter to test the pipeline
-    without setting up external databases or search indices.
+    Features:
+    - Keyword relevance and recency scoring for memory ranking.
+    - Automatic memory compression & deduplication before returning.
     """
 
-    def __init__(self) -> None:
-        """Initialize the storage adapter with some baseline mock data."""
+    def __init__(self, compressor: MemoryCompressor | None = None) -> None:
+        """Initialize the storage adapter with baseline mock data and compressor."""
         self._logger = logging.getLogger(__name__)
+        self._compressor = compressor or MemoryCompressor()
         self._records: list[MemoryRecord] = [
             MemoryRecord(
                 id=str(uuid.uuid4()),
@@ -34,17 +40,52 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
             ),
         ]
 
+    @staticmethod
+    def _extract_words(text: str) -> set[str]:
+        """Extract alphanumeric words from text, lowercased and stripped of punctuation."""
+        import re
+        return set(re.findall(r"\w+", text.lower()))
+
+    def _score_memory(self, record: MemoryRecord, query_words: set[str]) -> float:
+        """Calculate a composite relevance + recency score for a memory record."""
+        rec_words = self._extract_words(record.content)
+        
+        # Calculate stem match count (e.g. 'live' matching 'lives')
+        match_count = 0
+        for qw in query_words:
+            if any(qw in rw or rw in qw for rw in rec_words):
+                match_count += 1
+
+        # Keyword relevance score (0.0 to 1.0)
+        relevance_score = (match_count / len(query_words)) if query_words else 0.0
+
+        # Recency score (newer records get slightly higher score)
+        age_hours = (datetime.now(timezone.utc) - record.created_at).total_seconds() / 3600.0
+        recency_score = 1.0 / (1.0 + (age_hours / 24.0))
+
+        # Weight: 80% relevance, 20% recency
+        return (0.8 * relevance_score) + (0.2 * recency_score)
+
     async def retrieve(self, request: ChatRequest, plan: Any) -> Sequence[MemoryRecord]:
-        """Retrieve memory records relevant to the current query."""
-        # Simple match: if any word of user query is in the memory content, return it.
-        # This keeps the mock query logic dynamic and easy to test.
-        query_words = set(request.message.lower().split())
-        matched = []
-        for rec in self._records:
-            rec_words = set(rec.content.lower().split())
-            if query_words.intersection(rec_words) or len(query_words) < 3:
-                matched.append(rec)
-        return matched
+        """Retrieve and rank memory records relevant to the current query."""
+        query_words = self._extract_words(request.message)
+
+        # First compress records to eliminate duplicate info
+        compressed_records = self._compressor.compress(self._records)
+
+        # Score records
+        scored: list[tuple[float, MemoryRecord]] = []
+        for rec in compressed_records:
+            score = self._score_memory(rec, query_words)
+            rec_words = self._extract_words(rec.content)
+            # Include records with match or return all records if score > 0 or query is generic
+            has_match = any(qw in rw or rw in qw for qw in query_words for rw in rec_words)
+            if has_match or len(query_words) < 3 or not query_words:
+                scored.append((score, rec))
+
+        # Sort descending by score
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [rec for _, rec in scored]
 
     async def save(
         self, request: ChatRequest, response: AssistantResponse, plan: Any
@@ -52,7 +93,6 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
         """Parse response and user message to extract and persist new memory nodes."""
         msg_lower = request.message.lower()
         if "remember that" in msg_lower:
-            # Use the lowered index to find the split point in the original message
             idx = msg_lower.index("remember that") + len("remember that")
             content = request.message[idx:].strip()
             if content:
