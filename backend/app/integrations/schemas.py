@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class ProviderConfig(BaseModel):
     client_id: str
     client_secret: str

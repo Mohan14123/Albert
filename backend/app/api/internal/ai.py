@@ -21,6 +21,7 @@ router = APIRouter(prefix="/ai", tags=["internal"])
 
 class AICallbackRequest(BaseModel):
     """Payload that the AI service sends after generating a response."""
+
     chat_id: UUID
     content: str
     token_count: int | None = None
@@ -29,6 +30,7 @@ class AICallbackRequest(BaseModel):
 
 class AIRequestPayload(BaseModel):
     """Outbound request the backend makes to the AI service."""
+
     chat_id: UUID
     message_id: UUID
     user_id: UUID
@@ -38,9 +40,12 @@ class AIRequestPayload(BaseModel):
 def _verify_internal_key(x_internal_api_key: str = Header(...)) -> None:
     """Validate that the caller presents the correct internal API key."""
     from app.config.settings import settings
+
     expected = settings.ai_api_key
     if expected is None or x_internal_api_key != expected.get_secret_value():
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal API key")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal API key"
+        )
 
 
 def _get_message_service(db: AsyncSession = Depends(get_db)) -> MessageService:
@@ -80,13 +85,18 @@ async def ai_callback(
     Called by the AI worker after generating a response. Stores the assistant
     message and publishes MessageStored event via Redis pub/sub for SSE clients.
     """
-    message = await service.store_ai_response(body.chat_id, body.content, body.token_count)
+    message = await service.store_ai_response(
+        body.chat_id, body.content, body.token_count
+    )
 
     # Publish to Redis channel so SSE stream endpoint can forward to the client
     try:
         import json
+
         import redis.asyncio as aioredis
+
         from app.config.settings import settings
+
         r = aioredis.from_url(settings.redis_url, decode_responses=True)
         channel = f"chat:{body.chat_id}:stream"
         payload = json.dumps(

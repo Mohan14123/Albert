@@ -16,6 +16,7 @@ class CalendarOAuth:
     @staticmethod
     def get_auth_url(user_id: str) -> str:
         from app.integrations.oauth import OAuthHelper
+
         return OAuthHelper.build_redirect_url(
             base_url=GOOGLE_AUTH_URL,
             client_id=settings.google_client_id,
@@ -27,6 +28,7 @@ class CalendarOAuth:
     @staticmethod
     async def exchange_code(code: str) -> dict:
         from app.integrations.oauth import OAuthHelper
+
         secret = settings.google_client_secret
         return await OAuthHelper.exchange_code(
             token_url=GOOGLE_TOKEN_URL,

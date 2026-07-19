@@ -1,4 +1,5 @@
-from typing import Any, Generic, TypeVar, Optional
+from typing import Any, Generic, TypeVar
+
 from pydantic import BaseModel
 
 T = TypeVar("T")
@@ -6,12 +7,14 @@ T = TypeVar("T")
 
 class SuccessResponse(BaseModel, Generic[T]):
     """Standard success response wrapper."""
+
     success: bool = True
-    data: Optional[T] = None
+    data: T | None = None
 
 
 class ErrorResponse(BaseModel):
     """Standard error response wrapper."""
+
     success: bool = False
     error_code: str
     message: str
@@ -19,6 +22,7 @@ class ErrorResponse(BaseModel):
 
 class PaginatedData(BaseModel, Generic[T]):
     """Pagination metadata and data."""
+
     items: list[T]
     page: int
     limit: int
@@ -28,6 +32,7 @@ class PaginatedData(BaseModel, Generic[T]):
 
 class PaginatedResponse(BaseModel, Generic[T]):
     """Standard paginated response wrapper."""
+
     success: bool = True
     data: PaginatedData[T]
 
@@ -42,7 +47,9 @@ def error_response(code: str, message: str) -> dict[str, Any]:
     return {"success": False, "error_code": code, "message": message}
 
 
-def paginated_response(items: list[Any], page: int, limit: int, total: int) -> dict[str, Any]:
+def paginated_response(
+    items: list[Any], page: int, limit: int, total: int
+) -> dict[str, Any]:
     """Helper to return a paginated dictionary."""
     total_pages = (total + limit - 1) // limit if limit > 0 else 1
     return {
@@ -53,5 +60,5 @@ def paginated_response(items: list[Any], page: int, limit: int, total: int) -> d
             "limit": limit,
             "total": total,
             "total_pages": total_pages,
-        }
+        },
     }

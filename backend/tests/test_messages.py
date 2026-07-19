@@ -5,7 +5,9 @@ from httpx import AsyncClient
 
 
 async def _create_chat(client: AsyncClient, headers: dict) -> str:
-    r = await client.post("/api/v1/chats", json={"title": "Msg Test Chat"}, headers=headers)
+    r = await client.post(
+        "/api/v1/chats", json={"title": "Msg Test Chat"}, headers=headers
+    )
     assert r.status_code == 201, r.text
     return r.json()["id"]
 
@@ -27,7 +29,9 @@ async def test_send_message(async_client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_send_message_unauthenticated(async_client: AsyncClient, auth_headers: dict):
+async def test_send_message_unauthenticated(
+    async_client: AsyncClient, auth_headers: dict
+):
     """Sending a message without auth returns 401."""
     chat_id = await _create_chat(async_client, auth_headers)
     response = await async_client.post(
@@ -75,7 +79,9 @@ async def test_list_messages_with_data(async_client: AsyncClient, auth_headers: 
 
 
 @pytest.mark.asyncio
-async def test_send_message_to_other_users_chat(async_client: AsyncClient, auth_headers: dict):
+async def test_send_message_to_other_users_chat(
+    async_client: AsyncClient, auth_headers: dict
+):
     """Sending a message to another user's chat returns 403 or 404."""
     # Create chat as primary user
     chat_id = await _create_chat(async_client, auth_headers)
@@ -83,7 +89,11 @@ async def test_send_message_to_other_users_chat(async_client: AsyncClient, auth_
     # Register and login as another user
     await async_client.post(
         "/api/v1/auth/register",
-        json={"email": "intruder@albert.dev", "password": "Intrude@Pass1", "full_name": "Intruder"},
+        json={
+            "email": "intruder@albert.dev",
+            "password": "Intrude@Pass1",
+            "full_name": "Intruder",
+        },
     )
     login = await async_client.post(
         "/api/v1/auth/login",
@@ -100,7 +110,9 @@ async def test_send_message_to_other_users_chat(async_client: AsyncClient, auth_
 
 
 @pytest.mark.asyncio
-async def test_sse_stream_returns_event_stream(async_client: AsyncClient, auth_headers: dict):
+async def test_sse_stream_returns_event_stream(
+    async_client: AsyncClient, auth_headers: dict
+):
     """SSE stream endpoint returns text/event-stream content type."""
     chat_id = await _create_chat(async_client, auth_headers)
     # Use a short timeout — we just check content-type, not the stream body

@@ -1,10 +1,12 @@
-from pydantic import BaseModel
-from typing import List, Optional
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel
+
 
 class SendMessageRequest(BaseModel):
     content: str
+
 
 class MessageResponse(BaseModel):
     id: UUID
@@ -12,11 +14,12 @@ class MessageResponse(BaseModel):
     role: str
     content: str
     status: str
-    token_count: Optional[int] = None
+    token_count: int | None = None
     created_at: datetime
 
+
 class MessageListResponse(BaseModel):
-    items: List[MessageResponse]
+    items: list[MessageResponse]
     total: int
     page: int
     limit: int

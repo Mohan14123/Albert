@@ -1,13 +1,16 @@
-from pydantic import BaseModel
-from typing import List
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel
+
 
 class CreateChatRequest(BaseModel):
     title: str
 
+
 class RenameChatRequest(BaseModel):
     title: str
+
 
 class ChatResponse(BaseModel):
     id: UUID
@@ -16,8 +19,9 @@ class ChatResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
 class ChatListResponse(BaseModel):
-    items: List[ChatResponse]
+    items: list[ChatResponse]
     total: int
     page: int
     limit: int

@@ -10,7 +10,6 @@ from app.api.schemas.users import (
     SettingsUpdateRequest,
 )
 from app.core.dependencies import get_current_user, get_db
-from app.core.responses import success_response
 from app.database.models.user import User
 from app.events.publisher import EventPublisher
 from app.repositories.user_repository import UserRepository

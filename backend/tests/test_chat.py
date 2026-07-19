@@ -4,7 +4,9 @@ import pytest
 from httpx import AsyncClient
 
 
-async def _create_chat(async_client: AsyncClient, auth_headers: dict, title: str = "Test Chat") -> dict:
+async def _create_chat(
+    async_client: AsyncClient, auth_headers: dict, title: str = "Test Chat"
+) -> dict:
     """Helper to create a chat and return its JSON response."""
     response = await async_client.post(
         "/api/v1/chats",
@@ -54,7 +56,9 @@ async def test_list_chats_with_data(async_client: AsyncClient, auth_headers: dic
     for i in range(3):
         await _create_chat(async_client, auth_headers, f"Chat {i}")
 
-    response = await async_client.get("/api/v1/chats?page=1&limit=10", headers=auth_headers)
+    response = await async_client.get(
+        "/api/v1/chats?page=1&limit=10", headers=auth_headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 3
@@ -77,6 +81,7 @@ async def test_get_chat(async_client: AsyncClient, auth_headers: dict):
 async def test_get_nonexistent_chat(async_client: AsyncClient, auth_headers: dict):
     """Getting a chat that doesn't exist returns 404."""
     import uuid
+
     response = await async_client.get(
         f"/api/v1/chats/{uuid.uuid4()}", headers=auth_headers
     )

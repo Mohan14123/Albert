@@ -3,10 +3,10 @@
 from typing import Any
 
 from app.integrations.base import BaseIntegration
-from app.integrations.registry import register_provider
 from app.integrations.gmail.oauth import GmailOAuth
 from app.integrations.gmail.sync import GmailSync
 from app.integrations.gmail.webhook import GmailWebhook
+from app.integrations.registry import register_provider
 
 
 @register_provider("gmail")
@@ -25,9 +25,10 @@ class GmailIntegration(BaseIntegration):
 
     async def refresh_token(self, refresh_token: str) -> dict[str, Any]:
         """Refresh the Gmail access token."""
-        from app.integrations.oauth import OAuthHelper
         from app.config.settings import settings
         from app.integrations.gmail.oauth import GOOGLE_TOKEN_URL
+        from app.integrations.oauth import OAuthHelper
+
         secret = settings.google_client_secret
         return await OAuthHelper.refresh_token(
             token_url=GOOGLE_TOKEN_URL,
@@ -47,9 +48,12 @@ class GmailIntegration(BaseIntegration):
     async def health_check(self) -> bool:
         """Check that Google's token endpoint is reachable."""
         import httpx
+
         try:
             async with httpx.AsyncClient(timeout=5) as client:
-                r = await client.get("https://accounts.google.com/.well-known/openid-configuration")
+                r = await client.get(
+                    "https://accounts.google.com/.well-known/openid-configuration"
+                )
             return r.status_code == 200
         except Exception:
             return False

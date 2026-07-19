@@ -13,11 +13,11 @@ from app.api.schemas.auth import (
 from app.core.dependencies import get_current_user, get_db
 from app.core.responses import success_response
 from app.database.models.user import User
+from app.events.publisher import EventPublisher
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_settings_repository import UserSettingsRepository
 from app.services.auth_service import AuthService
-from app.events.publisher import EventPublisher
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

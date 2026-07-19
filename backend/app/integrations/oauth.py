@@ -21,6 +21,7 @@ class OAuthHelper:
     ) -> str:
         """Build a standards-compliant OAuth 2.0 authorization URL."""
         from urllib.parse import urlencode
+
         params = {
             "client_id": client_id,
             "redirect_uri": redirect_uri,

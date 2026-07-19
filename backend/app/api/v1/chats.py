@@ -12,7 +12,6 @@ from app.api.schemas.chats import (
     RenameChatRequest,
 )
 from app.core.dependencies import get_current_user, get_db
-from app.core.responses import success_response
 from app.database.models.user import User
 from app.events.publisher import EventPublisher
 from app.repositories.chat_repository import ChatRepository

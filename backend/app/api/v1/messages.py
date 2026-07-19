@@ -1,6 +1,5 @@
 """Message endpoints — send, list, and SSE stream for real-time AI responses."""
 
-import asyncio
 import json
 from uuid import UUID
 
@@ -8,7 +7,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.schemas.messages import MessageListResponse, MessageResponse, SendMessageRequest
+from app.api.schemas.messages import MessageListResponse, SendMessageRequest
 from app.core.dependencies import get_current_user, get_db
 from app.core.responses import success_response
 from app.database.models.user import User
@@ -90,6 +89,7 @@ async def stream_messages(
     async def event_generator():
         try:
             import redis.asyncio as aioredis
+
             redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
             channel = f"chat:{chat_id}:stream"
             pubsub = redis_client.pubsub()
@@ -102,7 +102,9 @@ async def stream_messages(
             timeout = 120  # 2 minutes max
             elapsed = 0
             while elapsed < timeout:
-                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                message = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=1.0
+                )
                 if message and message["type"] == "message":
                     data = message["data"]
                     yield f"data: {data}\n\n"

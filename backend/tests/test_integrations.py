@@ -22,7 +22,9 @@ async def test_list_integrations_unauthenticated(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_connect_gmail_returns_auth_url(async_client: AsyncClient, auth_headers: dict):
+async def test_connect_gmail_returns_auth_url(
+    async_client: AsyncClient, auth_headers: dict
+):
     """Connecting Gmail returns a Google OAuth authorization URL."""
     response = await async_client.post(
         "/api/v1/integrations/gmail/connect",
@@ -39,7 +41,9 @@ async def test_connect_gmail_returns_auth_url(async_client: AsyncClient, auth_he
 
 
 @pytest.mark.asyncio
-async def test_connect_unsupported_provider(async_client: AsyncClient, auth_headers: dict):
+async def test_connect_unsupported_provider(
+    async_client: AsyncClient, auth_headers: dict
+):
     """Connecting an unknown provider returns 400."""
     response = await async_client.post(
         "/api/v1/integrations/totally_fake_provider/connect",
@@ -49,7 +53,9 @@ async def test_connect_unsupported_provider(async_client: AsyncClient, auth_head
 
 
 @pytest.mark.asyncio
-async def test_integration_status_not_found(async_client: AsyncClient, auth_headers: dict):
+async def test_integration_status_not_found(
+    async_client: AsyncClient, auth_headers: dict
+):
     """Getting status of a non-connected integration returns 404."""
     response = await async_client.get(
         "/api/v1/integrations/gmail/status",

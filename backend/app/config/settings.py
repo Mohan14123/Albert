@@ -120,4 +120,5 @@ def get_settings() -> Settings:
     # Values are intentionally supplied by Pydantic's environment source.
     return Settings()  # type: ignore[call-arg]
 
+
 settings = get_settings()

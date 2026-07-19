@@ -26,7 +26,9 @@ class SyncWorker(BaseConsumer):
         provider = payload.get("provider")
 
         if not provider or not user_id:
-            logger.warning("SyncWorker received event without provider/user_id: %s", payload)
+            logger.warning(
+                "SyncWorker received event without provider/user_id: %s", payload
+            )
             return
 
         logger.info(
@@ -38,7 +40,11 @@ class SyncWorker(BaseConsumer):
 
         try:
             await _manager.trigger_sync(provider, user_id)
-            logger.info("SyncWorker completed sync for provider=%s user_id=%s", provider, user_id)
+            logger.info(
+                "SyncWorker completed sync for provider=%s user_id=%s",
+                provider,
+                user_id,
+            )
         except NotImplementedError:
             logger.info("Sync not yet implemented for provider=%s — skipping", provider)
         except Exception as exc:

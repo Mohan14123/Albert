@@ -72,6 +72,7 @@ class IntegrationService:
 
         # Encrypt and persist OAuth tokens
         from datetime import timedelta
+
         existing_token = await self._tokens.get_by_integration(integration.id)
         token_expires = datetime.now(UTC) + timedelta(seconds=expires_in)
         if existing_token is None:
@@ -86,14 +87,22 @@ class IntegrationService:
                 existing_token.id,
                 {
                     "access_token": encrypt_token(access_token),
-                    "refresh_token": encrypt_token(refresh_token) if refresh_token else existing_token.refresh_token,
+                    "refresh_token": (
+                        encrypt_token(refresh_token)
+                        if refresh_token
+                        else existing_token.refresh_token
+                    ),
                     "expires_at": token_expires,
                 },
             )
 
         await self._events.publish(
             "integration.connected",
-            {"integration_id": str(integration.id), "user_id": str(user_id), "provider": provider},
+            {
+                "integration_id": str(integration.id),
+                "user_id": str(user_id),
+                "provider": provider,
+            },
         )
 
     async def disconnect(self, user_id: UUID, provider: str) -> None:
@@ -118,7 +127,9 @@ class IntegrationService:
         return await self._get_owned_integration(user_id, provider)
 
     async def _get_owned_integration(self, user_id: UUID, provider: str):
-        integration = await self._integrations.get_by_user_and_provider(user_id, provider)
+        integration = await self._integrations.get_by_user_and_provider(
+            user_id, provider
+        )
         if integration is None:
             raise NotFoundError(f"No '{provider}' integration found for this account")
         return integration

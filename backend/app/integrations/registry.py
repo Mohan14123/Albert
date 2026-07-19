@@ -1,13 +1,15 @@
-from typing import Type
 from app.integrations.base import BaseIntegration
 
-_registry: dict[str, Type[BaseIntegration]] = {}
+_registry: dict[str, type[BaseIntegration]] = {}
+
 
 def register_provider(name: str):
-    def wrapper(cls: Type[BaseIntegration]):
+    def wrapper(cls: type[BaseIntegration]):
         _registry[name] = cls
         return cls
+
     return wrapper
+
 
 def get_provider(name: str) -> BaseIntegration:
     if name not in _registry:

@@ -15,7 +15,11 @@ router = APIRouter(tags=["health"])
 @router.get("/health")
 async def health() -> dict:
     """Basic liveness check — always returns 200 if the process is running."""
-    return {"status": "healthy", "app": settings.app_name, "version": settings.app_version}
+    return {
+        "status": "healthy",
+        "app": settings.app_name,
+        "version": settings.app_version,
+    }
 
 
 @router.get("/ready")
@@ -29,8 +33,10 @@ async def ready() -> JSONResponse:
 
     # ── PostgreSQL ─────────────────────────────────────────
     try:
-        from app.database.engine import engine
         from sqlalchemy import text
+
+        from app.database.engine import engine
+
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         checks["postgres"] = "ok"
@@ -42,6 +48,7 @@ async def ready() -> JSONResponse:
     # ── Redis ──────────────────────────────────────────────
     try:
         import redis.asyncio as aioredis
+
         r = aioredis.from_url(settings.redis_url, decode_responses=True)
         await r.ping()
         await r.aclose()
@@ -54,6 +61,7 @@ async def ready() -> JSONResponse:
     # ── RabbitMQ ───────────────────────────────────────────
     try:
         import aio_pika
+
         conn = await aio_pika.connect_robust(settings.rabbitmq_url, timeout=3)
         await conn.close()
         checks["rabbitmq"] = "ok"

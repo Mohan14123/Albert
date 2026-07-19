@@ -1,11 +1,12 @@
 from pydantic import BaseModel
-from typing import Optional
+
 
 class ProfileUpdateRequest(BaseModel):
-    full_name: Optional[str] = None
-    assistant_name: Optional[str] = None
-    language: Optional[str] = None
-    timezone: Optional[str] = None
+    full_name: str | None = None
+    assistant_name: str | None = None
+    language: str | None = None
+    timezone: str | None = None
+
 
 class ProfileResponse(BaseModel):
     full_name: str
@@ -13,10 +14,12 @@ class ProfileResponse(BaseModel):
     language: str
     timezone: str
 
+
 class SettingsUpdateRequest(BaseModel):
-    theme: Optional[str] = None
-    language: Optional[str] = None
-    notifications: Optional[bool] = None
+    theme: str | None = None
+    language: str | None = None
+    notifications: bool | None = None
+
 
 class SettingsResponse(BaseModel):
     theme: str

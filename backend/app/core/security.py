@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from cryptography.fernet import Fernet
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 
 from app.config.settings import settings
 from app.core.exceptions import AuthenticationError
@@ -31,20 +31,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # ---------------------------------------------------------
 # JWT (JSON Web Tokens)
 # ---------------------------------------------------------
-def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: str | Any, expires_delta: timedelta | None = None
+) -> str:
     """Create a new JWT access token."""
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=settings.access_token_expire_minutes
         )
-    
+
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(
-        to_encode, 
-        settings.jwt_secret.get_secret_value(), 
-        algorithm=settings.jwt_algorithm
+        to_encode,
+        settings.jwt_secret.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
     )
     return encoded_jwt
 
@@ -56,9 +58,9 @@ def verify_access_token(token: str) -> str:
     """
     try:
         payload = jwt.decode(
-            token, 
-            settings.jwt_secret.get_secret_value(), 
-            algorithms=[settings.jwt_algorithm]
+            token,
+            settings.jwt_secret.get_secret_value(),
+            algorithms=[settings.jwt_algorithm],
         )
         subject: str = payload.get("sub")
         if not subject:
@@ -80,8 +82,9 @@ def get_fernet() -> Fernet:
     # If it's a raw 32-byte string, we might need to encode it for Fernet.
     # Let's ensure it's a valid Fernet key.
     import base64
+
     if len(key) == 32:
-        key = base64.urlsafe_b64encode(key.encode('utf-8')).decode('utf-8')
+        key = base64.urlsafe_b64encode(key.encode("utf-8")).decode("utf-8")
     return Fernet(key)
 
 

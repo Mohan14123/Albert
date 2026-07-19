@@ -3,10 +3,8 @@
 import logging
 from typing import Any
 
-import httpx
-
-from app.integrations.registry import get_provider
 from app.integrations.base import BaseIntegration
+from app.integrations.registry import get_provider
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +42,7 @@ class IntegrationManager:
 def _import_providers() -> None:
     """Lazy import all providers to populate the registry."""
     import importlib
+
     for mod in (
         "app.integrations.gmail.service",
         "app.integrations.calendar.service",

@@ -1,14 +1,11 @@
 """Integration endpoints — connect, callback, disconnect, sync, status."""
 
-from uuid import UUID
-
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas.integrations import (
     ConnectResponse,
-    IntegrationResponse,
     IntegrationStatusResponse,
 )
 from app.core.dependencies import get_current_user, get_db
@@ -74,9 +71,12 @@ async def integration_callback(
     then redirects the user back to the frontend dashboard.
     """
     from app.config.settings import settings
+
     await service.handle_callback(provider, code, state)
     # Redirect to frontend after successful OAuth
-    frontend_url = settings.cors_origins[0] if settings.cors_origins else "http://localhost:3000"
+    frontend_url = (
+        settings.cors_origins[0] if settings.cors_origins else "http://localhost:3000"
+    )
     return RedirectResponse(url=f"{frontend_url}/integrations?connected={provider}")
 
 

@@ -1,7 +1,6 @@
 """AI Worker — consumes MessageReceived events and forwards to the AI service."""
 
 import asyncio
-import json
 import logging
 
 import httpx
@@ -36,7 +35,9 @@ class AIWorker(BaseConsumer):
             async with httpx.AsyncClient(timeout=settings.ai_request_timeout) as client:
                 headers = {}
                 if settings.ai_api_key:
-                    headers["X-Internal-Api-Key"] = settings.ai_api_key.get_secret_value()
+                    headers["X-Internal-Api-Key"] = (
+                        settings.ai_api_key.get_secret_value()
+                    )
 
                 response = await client.post(
                     f"{settings.ai_service_url}/process",
@@ -62,7 +63,9 @@ class AIWorker(BaseConsumer):
                 },
                 correlation_id=event.correlation_id,
             )
-            logger.info("AIWorker published message.generated for message_id=%s", message_id)
+            logger.info(
+                "AIWorker published message.generated for message_id=%s", message_id
+            )
 
         except httpx.HTTPStatusError as exc:
             logger.error(
@@ -74,7 +77,9 @@ class AIWorker(BaseConsumer):
             raise  # triggers retry/DLQ in BaseConsumer
 
         except httpx.RequestError as exc:
-            logger.error("AI service unreachable for message_id=%s: %s", message_id, exc)
+            logger.error(
+                "AI service unreachable for message_id=%s: %s", message_id, exc
+            )
             raise
 
 

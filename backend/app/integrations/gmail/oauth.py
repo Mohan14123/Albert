@@ -17,6 +17,7 @@ class GmailOAuth:
     def get_auth_url(user_id: str) -> str:
         """Build the Google OAuth authorization URL with Gmail scopes."""
         from app.integrations.oauth import OAuthHelper
+
         return OAuthHelper.build_redirect_url(
             base_url=GOOGLE_AUTH_URL,
             client_id=settings.google_client_id,
@@ -29,6 +30,7 @@ class GmailOAuth:
     async def exchange_code(code: str) -> dict:
         """Exchange Gmail authorization code for tokens."""
         from app.integrations.oauth import OAuthHelper
+
         secret = settings.google_client_secret
         return await OAuthHelper.exchange_code(
             token_url=GOOGLE_TOKEN_URL,

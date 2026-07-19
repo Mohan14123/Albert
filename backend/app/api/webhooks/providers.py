@@ -38,7 +38,9 @@ async def gmail_webhook(request: Request) -> JSONResponse:
     try:
         payload = await request.json()
     except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON"
+        )
 
     await _publish_webhook_event("gmail", payload)
     logger.info("Received Gmail webhook")
@@ -51,7 +53,9 @@ async def calendar_webhook(request: Request) -> JSONResponse:
     try:
         payload = await request.json()
     except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON"
+        )
 
     await _publish_webhook_event("calendar", payload)
     logger.info("Received Calendar webhook")
@@ -74,17 +78,26 @@ async def slack_webhook(
     slack_signing_secret = getattr(settings, "slack_signing_secret", None)
     if slack_signing_secret:
         sig_basestring = f"v0:{x_slack_request_timestamp}:{body.decode()}"
-        computed = "v0=" + hmac.new(
-            slack_signing_secret.encode(), sig_basestring.encode(), hashlib.sha256
-        ).hexdigest()
+        computed = (
+            "v0="
+            + hmac.new(
+                slack_signing_secret.encode(), sig_basestring.encode(), hashlib.sha256
+            ).hexdigest()
+        )
         if not hmac.compare_digest(computed, x_slack_signature):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Slack signature")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Slack signature",
+            )
 
     try:
         import json
+
         payload = json.loads(body)
     except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON"
+        )
 
     # Respond to Slack URL verification challenge
     if payload.get("type") == "url_verification":
@@ -100,7 +113,9 @@ async def jira_webhook(request: Request) -> JSONResponse:
     try:
         payload = await request.json()
     except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON"
+        )
 
     await _publish_webhook_event("jira", payload)
     logger.info("Received Jira webhook: %s", payload.get("webhookEvent"))

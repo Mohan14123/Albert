@@ -5,20 +5,21 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.internal import ai
+from app.api.v1 import auth, chats, health, integrations, messages, users
+from app.api.webhooks import providers
 from app.config.settings import settings
 from app.middleware.exception_handler import add_exception_handlers
 from app.middleware.logging import RequestLoggingMiddleware, setup_logging
-from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.middleware.rate_limiting import RateLimitingMiddleware
-from app.api.v1 import auth, users, chats, messages, integrations, health
-from app.api.internal import ai
-from app.api.webhooks import providers
+from app.middleware.security_headers import SecurityHeadersMiddleware
 
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────
 # Application factory
 # ──────────────────────────────────────────────────────────
+
 
 def create_app() -> FastAPI:
     setup_logging()
@@ -66,8 +67,10 @@ def create_app() -> FastAPI:
     async def on_startup() -> None:
         logger.info("Starting Albert backend…")
         # Verify DB connection
-        from app.database.engine import engine
         from sqlalchemy import text
+
+        from app.database.engine import engine
+
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         logger.info("PostgreSQL connection OK")
@@ -75,6 +78,7 @@ def create_app() -> FastAPI:
         # Connect Redis
         try:
             import redis.asyncio as aioredis
+
             redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
             await redis_client.ping()
             app.state.redis = redis_client
@@ -86,6 +90,7 @@ def create_app() -> FastAPI:
         # Connect RabbitMQ event publisher
         try:
             from app.events.publisher import EventPublisher
+
             publisher = EventPublisher()
             await publisher.connect()
             app.state.publisher = publisher
@@ -106,6 +111,7 @@ def create_app() -> FastAPI:
             await app.state.redis.aclose()
             logger.info("Redis connection closed")
         from app.database.engine import engine
+
         await engine.dispose()
         logger.info("DB engine disposed")
 

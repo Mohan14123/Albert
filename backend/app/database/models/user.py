@@ -1,6 +1,8 @@
 from sqlalchemy import Boolean, Column, String, Text
 from sqlalchemy.orm import relationship
+
 from app.database.base import BaseModel
+
 
 class User(BaseModel):
     __tablename__ = "users"
@@ -14,6 +16,15 @@ class User(BaseModel):
     is_active = Column(Boolean, default=True, nullable=False)
 
     chats = relationship("Chat", back_populates="user", cascade="all, delete-orphan")
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
-    settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    integrations = relationship("Integration", back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    settings = relationship(
+        "UserSettings",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    integrations = relationship(
+        "Integration", back_populates="user", cascade="all, delete-orphan"
+    )
