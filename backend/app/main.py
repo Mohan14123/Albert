@@ -1,28 +1,115 @@
+"""FastAPI application entry-point: wires middleware, routers, and lifecycle hooks."""
+
+import logging
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config.settings import settings
+from app.middleware.exception_handler import add_exception_handlers
+from app.middleware.logging import RequestLoggingMiddleware, setup_logging
+from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.rate_limiting import RateLimitingMiddleware
 from app.api.v1 import auth, users, chats, messages, integrations, health
 from app.api.internal import ai
 from app.api.webhooks import providers
 
-app = FastAPI(
-    title="Albert Backend API",
-    version="1.0.0",
-    description="Backend API for Albert Assistant",
-)
+logger = logging.getLogger(__name__)
 
-# Include routers
-app.include_router(health.router, prefix="/api/v1")
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(users.router, prefix="/api/v1")
-app.include_router(chats.router, prefix="/api/v1")
-app.include_router(messages.router, prefix="/api/v1")
-app.include_router(integrations.router, prefix="/api/v1")
-app.include_router(ai.router, prefix="/internal")
-app.include_router(providers.router)
+# ──────────────────────────────────────────────────────────
+# Application factory
+# ──────────────────────────────────────────────────────────
 
-@app.on_event("startup")
-async def startup_event():
-    pass
+def create_app() -> FastAPI:
+    setup_logging()
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    pass
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        description="Production-grade backend API for Albert AI Personal Assistant.",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+    )
+
+    # ── Middleware (outermost first) ──────────────────────
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins or ["*"],
+        allow_credentials=settings.cors_allow_credentials,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    app.add_middleware(RequestLoggingMiddleware)
+
+    if settings.rate_limit_enabled:
+        app.add_middleware(RateLimitingMiddleware)
+
+    # ── Exception handlers ────────────────────────────────
+    add_exception_handlers(app)
+
+    # ── Routers ───────────────────────────────────────────
+    app.include_router(health.router, prefix="/api/v1")
+    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(users.router, prefix="/api/v1")
+    app.include_router(chats.router, prefix="/api/v1")
+    app.include_router(messages.router, prefix="/api/v1")
+    app.include_router(integrations.router, prefix="/api/v1")
+    app.include_router(ai.router, prefix="/internal")
+    app.include_router(providers.router, prefix="/webhooks")
+
+    # ── Lifecycle hooks ───────────────────────────────────
+    @app.on_event("startup")
+    async def on_startup() -> None:
+        logger.info("Starting Albert backend…")
+        # Verify DB connection
+        from app.database.engine import engine
+        from sqlalchemy import text
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        logger.info("PostgreSQL connection OK")
+
+        # Connect Redis
+        try:
+            import redis.asyncio as aioredis
+            redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
+            await redis_client.ping()
+            app.state.redis = redis_client
+            logger.info("Redis connection OK")
+        except Exception as exc:
+            logger.warning("Redis not available at startup: %s", exc)
+            app.state.redis = None
+
+        # Connect RabbitMQ event publisher
+        try:
+            from app.events.publisher import EventPublisher
+            publisher = EventPublisher()
+            await publisher.connect()
+            app.state.publisher = publisher
+            logger.info("RabbitMQ connection OK")
+        except Exception as exc:
+            logger.warning("RabbitMQ not available at startup: %s", exc)
+            app.state.publisher = None
+
+        logger.info("Albert backend ready on %s:%s", settings.host, settings.port)
+
+    @app.on_event("shutdown")
+    async def on_shutdown() -> None:
+        logger.info("Shutting down Albert backend…")
+        if getattr(app.state, "publisher", None) is not None:
+            await app.state.publisher.close()
+            logger.info("RabbitMQ publisher closed")
+        if getattr(app.state, "redis", None) is not None:
+            await app.state.redis.aclose()
+            logger.info("Redis connection closed")
+        from app.database.engine import engine
+        await engine.dispose()
+        logger.info("DB engine disposed")
+
+    return app
+
+
+app = create_app()
