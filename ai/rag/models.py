@@ -12,6 +12,7 @@ def _utc_now() -> datetime:
 @dataclass(frozen=True)
 class DocumentChunk:
     """A segment of text extracted from a larger document."""
+
     chunk_id: str
     document_id: str
     content: str
@@ -23,6 +24,7 @@ class DocumentChunk:
 @dataclass(frozen=True)
 class SearchResult:
     """A scored document chunk retrieved from vector search."""
+
     chunk: DocumentChunk
     score: float
 
@@ -30,6 +32,7 @@ class SearchResult:
 @dataclass(frozen=True)
 class RAGConfig:
     """Configuration options for RAG indexing and search."""
+
     chunk_size: int = 500
     chunk_overlap: int = 50
     top_k: int = 3
