@@ -13,6 +13,7 @@ from ai.observability.logger import AITelemetryLogger
 
 # -- Test 1: Metrics Collector token and event tracking --------------------
 
+
 def test_metrics_collector():
     """Verify recording of telemetry events and token usage aggregation."""
     collector = MetricsCollector()
@@ -34,7 +35,9 @@ def test_metrics_collector():
     collector.record_event(event2)
 
     collector.record_tokens("openai", "gpt-4o", prompt_tokens=150, completion_tokens=50)
-    collector.record_tokens("openai", "gpt-4o", prompt_tokens=200, completion_tokens=100)
+    collector.record_tokens(
+        "openai", "gpt-4o", prompt_tokens=200, completion_tokens=100
+    )
 
     summary = collector.get_summary()
 
@@ -48,6 +51,7 @@ def test_metrics_collector():
 
 
 # -- Test 2: Structured Telemetry Logger -----------------------------------
+
 
 def test_telemetry_logger():
     """Verify telemetry logger formats event without error."""
@@ -66,6 +70,7 @@ def test_telemetry_logger():
 
 
 # -- Main -------------------------------------------------------------------
+
 
 async def main():
     print("--- Observability Tests ---")
