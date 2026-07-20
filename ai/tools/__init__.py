@@ -11,6 +11,7 @@ from .service import (
     GmailTool,
     CalendarTool,
     CalculatorTool,
+    NewsTool,
 )
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "GmailTool",
     "CalendarTool",
     "CalculatorTool",
+    "NewsTool",
 ]

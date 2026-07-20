@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Default API configuration constants
 _DEFAULT_OPENAI_API_BASE = "https://api.openai.com/v1"
 _DEFAULT_DEEPSEEK_API_BASE = "https://api.deepseek.com/v1"
+_DEFAULT_GROK_API_BASE = "https://api.x.ai/v1"
 _DEFAULT_CLAUDE_API_BASE = "https://api.anthropic.com/v1"
 _DEFAULT_GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 _DEFAULT_ANTHROPIC_VERSION = "2023-06-01"
@@ -150,7 +151,7 @@ class MockProvider(LLMProvider):
 
 
 class OpenAICompatibleProvider(LLMProvider):
-    """Base client for OpenAI and DeepSeek compatible APIs."""
+    """Base client for OpenAI, DeepSeek, and Grok (xAI) compatible APIs."""
 
     def __init__(self, api_key: str, api_base: str, model: str):
         self.api_key = api_key

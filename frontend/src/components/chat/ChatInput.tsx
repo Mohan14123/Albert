@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Paperclip, Mic, ArrowUp } from "lucide-react";
+import { Paperclip, Mic, ArrowUp, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,6 +28,12 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     }
   };
 
+  const handleQuickNews = (topic: string) => {
+    if (!isLoading) {
+      onSend(`What are the latest ${topic} news headlines today?`);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -43,7 +49,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         className="w-full bg-transparent resize-none border-0 focus:ring-0 p-2 text-sm max-h-[200px] min-h-[44px] scrollbar-thin outline-none"
-        placeholder="Message AI Assistant..."
+        placeholder="Message AI Assistant or ask for live news..."
         rows={1}
       />
       <div className="flex items-center justify-between px-2 pt-2 border-t border-border/50 mt-2">
@@ -56,6 +62,17 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           <Tooltip>
             <TooltipTrigger className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors flex items-center justify-center"><Mic className="w-4 h-4" /></TooltipTrigger>
             <TooltipContent>Voice message</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              onClick={() => handleQuickNews("AI & Tech")}
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors flex items-center justify-center gap-1 text-xs font-medium"
+            >
+              <Newspaper className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">Latest News</span>
+            </TooltipTrigger>
+            <TooltipContent>Fetch Live News Headlines</TooltipContent>
           </Tooltip>
         </div>
         

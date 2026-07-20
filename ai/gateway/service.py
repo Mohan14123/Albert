@@ -11,6 +11,7 @@ from ..constants import (
     DEFAULT_GEMINI_MODEL,
     DEFAULT_CLAUDE_MODEL,
     DEFAULT_DEEPSEEK_MODEL,
+    DEFAULT_GROK_MODEL,
 )
 from ..exceptions import GatewayError
 from .providers import (
@@ -21,6 +22,7 @@ from .providers import (
     GeminiProvider,
     _DEFAULT_OPENAI_API_BASE,
     _DEFAULT_DEEPSEEK_API_BASE,
+    _DEFAULT_GROK_API_BASE,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,10 +60,17 @@ MODEL_REGISTRY: dict[str, list[str]] = {
         "deepseek-coder",
         "deepseek-reasoner",
     ],
+    "grok": [
+        "grok-2-1212",
+        "grok-2",
+        "grok-beta",
+        "grok-2-vision-1212",
+        "grok-vision-beta",
+    ],
 }
 
 # Default provider fallback order (tried in sequence when the primary fails).
-_FALLBACK_ORDER: tuple[str, ...] = ("openai", "gemini", "claude", "deepseek")
+_FALLBACK_ORDER: tuple[str, ...] = ("openai", "gemini", "claude", "deepseek", "grok")
 
 
 class MultiProviderGateway(LanguageModelGateway):
@@ -100,6 +109,15 @@ class MultiProviderGateway(LanguageModelGateway):
                 api_key=cfg.api_key,
                 api_base=cfg.api_base or _DEFAULT_DEEPSEEK_API_BASE,
                 model=cfg.default_model or DEFAULT_DEEPSEEK_MODEL,
+            )
+
+        # Grok (OpenAI-compatible)
+        cfg = self._config.grok
+        if cfg.api_key:
+            providers["grok"] = OpenAICompatibleProvider(
+                api_key=cfg.api_key,
+                api_base=cfg.api_base or _DEFAULT_GROK_API_BASE,
+                model=cfg.default_model or DEFAULT_GROK_MODEL,
             )
 
         # Claude

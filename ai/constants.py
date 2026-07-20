@@ -12,6 +12,7 @@ DEFAULT_OPENAI_MODEL = "gpt-4o"
 DEFAULT_GEMINI_MODEL = "gemini-1.5-pro"
 DEFAULT_CLAUDE_MODEL = "claude-3-5-sonnet"
 DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
+DEFAULT_GROK_MODEL = "grok-2-1212"
 
 # Memory Types
 MEMORY_FACT = "fact"

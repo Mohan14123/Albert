@@ -13,6 +13,7 @@ from app.api.v1 import (
     integrations,
     memory,
     messages,
+    news,
     plugins,
     users,
 )
@@ -132,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(memory.router, prefix="/api/v1")
     app.include_router(plugins.router, prefix="/api/v1")
     app.include_router(integrations.router, prefix="/api/v1")
+    app.include_router(news.router, prefix="/api/v1")
     app.include_router(providers.router, prefix="/webhooks")
 
     return app

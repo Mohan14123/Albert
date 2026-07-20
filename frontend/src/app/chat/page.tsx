@@ -58,8 +58,9 @@ function ChatContent() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold px-2.5 py-1 bg-primary/10 text-primary rounded-full uppercase tracking-wider">
-            Albert AI
+          <span className="text-[11px] font-semibold px-2.5 py-1 bg-primary/10 text-primary rounded-full tracking-wider flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Albert AI Gateway
           </span>
         </div>
       </header>

@@ -121,14 +121,32 @@ def test_model_registry():
     assert "gemini" in MODEL_REGISTRY
     assert "claude" in MODEL_REGISTRY
     assert "deepseek" in MODEL_REGISTRY
+    assert "grok" in MODEL_REGISTRY
     assert "gpt-4o" in MODEL_REGISTRY["openai"]
     assert "gemini-1.5-pro" in MODEL_REGISTRY["gemini"]
+    assert "grok-2-1212" in MODEL_REGISTRY["grok"]
 
     # Test the static helper
     models = MultiProviderGateway.registered_models("openai")
     assert "gpt-4o" in models
+    grok_models = MultiProviderGateway.registered_models("grok")
+    assert "grok-2-1212" in grok_models
     assert MultiProviderGateway.registered_models("nonexistent") == []
     print("  PASSED: Model registry validation")
+
+
+def test_grok_provider_initialization():
+    """Validate that setting GROK_API_KEY initializes the Grok provider."""
+    import os
+    os.environ["GROK_API_KEY"] = "test-grok-key"
+    try:
+        config = AIConfig.from_env()
+        assert config.grok.api_key == "test-grok-key"
+        gateway = MultiProviderGateway(config)
+        assert "grok" in gateway.available_providers()
+        print("  PASSED: Grok provider initialization")
+    finally:
+        os.environ.pop("GROK_API_KEY", None)
 
 
 # -- Test 3: Provider fallback ----------------------------------------------
@@ -176,6 +194,7 @@ async def main():
 
     print("\n--- Model Registry Tests ---")
     test_model_registry()
+    test_grok_provider_initialization()
 
     print("\n--- Provider Fallback Tests ---")
     await test_provider_fallback()

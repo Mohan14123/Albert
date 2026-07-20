@@ -14,6 +14,7 @@ from ai.tools import (
     SearchTool,
     GmailTool,
     CalendarTool,
+    NewsTool,
 )
 
 
@@ -21,14 +22,15 @@ async def main():
     print("Initializing Tool Registry...")
     registry = ToolRegistry()
 
-    print("\nRegistering Stub Tools...")
+    print("\nRegistering Tools...")
     registry.register(CalculatorTool())
     registry.register(SearchTool())
     registry.register(GmailTool())
     registry.register(CalendarTool())
+    registry.register(NewsTool())
 
     print(f"Registered tool names: {[t.name for t in registry.list_tools()]}")
-    assert len(registry.list_tools()) == 4, "Error: Should have 4 registered tools"
+    assert len(registry.list_tools()) == 5, "Error: Should have 5 registered tools"
 
     print("\nPreparing ToolExecutor & Execution Plan...")
     executor = DefaultToolExecutor(registry)

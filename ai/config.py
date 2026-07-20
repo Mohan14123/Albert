@@ -10,6 +10,7 @@ from .constants import (
     DEFAULT_GEMINI_MODEL,
     DEFAULT_CLAUDE_MODEL,
     DEFAULT_DEEPSEEK_MODEL,
+    DEFAULT_GROK_MODEL,
 )
 
 
@@ -30,6 +31,7 @@ class AIConfig:
     gemini: LLMProviderConfig = field(default_factory=LLMProviderConfig)
     claude: LLMProviderConfig = field(default_factory=LLMProviderConfig)
     deepseek: LLMProviderConfig = field(default_factory=LLMProviderConfig)
+    grok: LLMProviderConfig = field(default_factory=LLMProviderConfig)
 
     # Active default provider
     default_provider: str = "openai"
@@ -41,6 +43,7 @@ class AIConfig:
         gemini_key = os.environ.get("GEMINI_API_KEY")
         claude_key = os.environ.get("CLAUDE_API_KEY")
         deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
+        grok_key = os.environ.get("GROK_API_KEY") or os.environ.get("XAI_API_KEY")
 
         return cls(
             openai=LLMProviderConfig(
@@ -70,6 +73,14 @@ class AIConfig:
                 default_model=os.environ.get(
                     "DEEPSEEK_DEFAULT_MODEL", DEFAULT_DEEPSEEK_MODEL
                 ),
+            ),
+            grok=LLMProviderConfig(
+                api_key=grok_key,
+                api_base=os.environ.get("GROK_API_BASE")
+                or os.environ.get("XAI_API_BASE"),
+                default_model=os.environ.get("GROK_DEFAULT_MODEL")
+                or os.environ.get("XAI_DEFAULT_MODEL")
+                or DEFAULT_GROK_MODEL,
             ),
             default_provider=os.environ.get("DEFAULT_AI_PROVIDER", "openai"),
         )

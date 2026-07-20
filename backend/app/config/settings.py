@@ -72,6 +72,8 @@ class Settings(BaseSettings):
 
     ai_service_url: str
     ai_api_key: SecretStr | None = None
+    grok_api_key: SecretStr | None = None
+    xai_api_key: SecretStr | None = None
     ai_request_timeout: int = Field(default=120, ge=1)
     file_storage: str = "local"
     upload_directory: str = "uploads/"

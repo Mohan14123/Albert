@@ -49,6 +49,7 @@ def _import_providers() -> None:
         "app.integrations.slack.service",
         "app.integrations.github.service",
         "app.integrations.jira.service",
+        "app.integrations.news.service",
     ):
         try:
             importlib.import_module(mod)
