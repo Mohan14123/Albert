@@ -8,6 +8,7 @@ from functools import lru_cache
 from typing import Any, AsyncGenerator
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from ..orchestrator import AIOrchestrator, OrchestratorDependencies, ChatRequest
 from ..config import AIConfig
@@ -124,3 +125,82 @@ async def chat(
 async def health() -> dict[str, str]:
     """Simple health check endpoint."""
     return {"status": "healthy", "service": "albert-ai"}
+
+
+class MemorySearchRequest(BaseModel):
+    query: str
+    limit: int = 5
+
+
+@router.post("/memory/search")
+async def memory_search(
+    request: MemorySearchRequest,
+    orchestrator: AIOrchestrator = Depends(get_orchestrator),
+) -> Any:
+    # Delegate to memory adapter
+    memories = await orchestrator._dependencies.memory_retriever.search(  # type: ignore
+        request.query, limit=request.limit
+    )
+    return {
+        "results": [
+            {"id": str(m.id), "content": m.content, "score": m.relevance_score}
+            for m in memories
+        ]
+    }
+
+
+class MemoryStoreRequest(BaseModel):
+    content: str
+    category: str | None = None
+
+
+@router.post("/memory/store")
+async def memory_store(
+    request: MemoryStoreRequest,
+    orchestrator: AIOrchestrator = Depends(get_orchestrator),
+) -> Any:
+    memory = await orchestrator._dependencies.memory_writer.store(  # type: ignore
+        request.content, request.category
+    )
+    return {"status": "success", "memory_id": str(memory.id)}
+
+
+class RagQueryRequest(BaseModel):
+    query: str
+    top_k: int = 3
+
+
+@router.post("/rag/query")
+async def rag_query(
+    request: RagQueryRequest,
+    # Inject vector store here ideally, stub for now
+) -> Any:
+    return {"results": []}
+
+
+class ToolExecuteRequest(BaseModel):
+    tool_name: str
+    arguments: dict[str, Any]
+
+
+@router.post("/tools/execute")
+async def tool_execute(
+    request: ToolExecuteRequest,
+    orchestrator: AIOrchestrator = Depends(get_orchestrator),
+) -> Any:
+    result = await orchestrator._dependencies.tool_executor.execute(
+        request.tool_name, request.arguments
+    )
+    return {"result": result.content, "is_error": result.is_error}  # type: ignore
+
+
+@router.get("/chat/history")
+async def get_chat_history() -> Any:
+    # Stub: history should be fetched from backend DB in a real app,
+    # or AI service queries backend
+    return {"history": []}
+
+
+@router.delete("/chat/{chat_id}")
+async def delete_chat(chat_id: str) -> Any:
+    return {"status": "deleted", "chat_id": chat_id}
