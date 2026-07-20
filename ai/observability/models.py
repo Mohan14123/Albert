@@ -12,6 +12,7 @@ def _utc_now() -> datetime:
 @dataclass(frozen=True)
 class AIMetricEvent:
     """A diagnostic telemetry event recorded during pipeline execution."""
+
     event_id: str
     event_type: str  # request, tool_call, gateway_call, planner_call, error
     conversation_id: str
@@ -23,6 +24,7 @@ class AIMetricEvent:
 @dataclass(frozen=True)
 class LatencyRecord:
     """Recorded duration for a specific execution step."""
+
     step_name: str
     duration_ms: float
 
@@ -30,6 +32,7 @@ class LatencyRecord:
 @dataclass(frozen=True)
 class TokenUsageRecord:
     """Token metrics for model generation."""
+
     provider: str
     model: str
     prompt_tokens: int
