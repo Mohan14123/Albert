@@ -12,7 +12,6 @@ from .compressor import MemoryCompressor
 logger = logging.getLogger(__name__)
 
 
-
 class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
     """An in-memory stub implementation of MemoryRetriever and MemoryWriter.
 
@@ -44,12 +43,13 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
     def _extract_words(text: str) -> set[str]:
         """Extract alphanumeric words from text, lowercased and stripped of punctuation."""
         import re
+
         return set(re.findall(r"\w+", text.lower()))
 
     def _score_memory(self, record: MemoryRecord, query_words: set[str]) -> float:
         """Calculate a composite relevance + recency score for a memory record."""
         rec_words = self._extract_words(record.content)
-        
+
         # Calculate stem match count (e.g. 'live' matching 'lives')
         match_count = 0
         for qw in query_words:
@@ -60,7 +60,9 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
         relevance_score = (match_count / len(query_words)) if query_words else 0.0
 
         # Recency score (newer records get slightly higher score)
-        age_hours = (datetime.now(timezone.utc) - record.created_at).total_seconds() / 3600.0
+        age_hours = (
+            datetime.now(timezone.utc) - record.created_at
+        ).total_seconds() / 3600.0
         recency_score = 1.0 / (1.0 + (age_hours / 24.0))
 
         # Weight: 80% relevance, 20% recency
@@ -79,7 +81,9 @@ class InMemoryMemoryAdapter(MemoryRetriever, MemoryWriter):
             score = self._score_memory(rec, query_words)
             rec_words = self._extract_words(rec.content)
             # Include records with match or return all records if score > 0 or query is generic
-            has_match = any(qw in rw or rw in qw for qw in query_words for rw in rec_words)
+            has_match = any(
+                qw in rw or rw in qw for qw in query_words for rw in rec_words
+            )
             if has_match or len(query_words) < 3 or not query_words:
                 scored.append((score, rec))
 
