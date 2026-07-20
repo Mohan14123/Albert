@@ -8,12 +8,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from ai.rag.chunker import TextChunker
 from ai.rag.embeddings import MockEmbeddingClient, cosine_similarity
-from ai.rag.vector_store import InMemoryVectorStore
 from ai.rag.service import RAGService
 from ai.rag.models import RAGConfig
 
 
 # -- Test 1: Text chunking --------------------------------------------------
+
 
 def test_text_chunker():
     """Verify text chunker splits text with specified size and overlap."""
@@ -29,6 +29,7 @@ def test_text_chunker():
 
 # -- Test 2: Cosine similarity ----------------------------------------------
 
+
 def test_cosine_similarity():
     """Verify cosine similarity calculation."""
     v1 = [1.0, 0.0, 0.0]
@@ -42,6 +43,7 @@ def test_cosine_similarity():
 
 # -- Test 3: Mock embeddings -----------------------------------------------
 
+
 async def test_mock_embeddings():
     """Verify MockEmbeddingClient outputs normalized vectors."""
     client = MockEmbeddingClient(dimension=32)
@@ -54,6 +56,7 @@ async def test_mock_embeddings():
 
 
 # -- Test 4: RAG service end-to-end -----------------------------------------
+
 
 async def test_rag_service_e2e():
     """Verify document ingestion, search retrieval, top-K, and context formatting."""
@@ -70,16 +73,21 @@ async def test_rag_service_e2e():
     chunks_created = await rag_service.ingest_document("doc_alfred", doc_text)
     assert chunks_created > 0, "Document should be chunked and indexed"
 
-    results = await rag_service.retrieve_relevant_context("Tell me about Alfred tools and Calendar")
+    results = await rag_service.retrieve_relevant_context(
+        "Tell me about Alfred tools and Calendar"
+    )
     assert len(results) <= 2, f"Expected top_k <= 2, got {len(results)}"
 
     formatted = rag_service.format_context_injection(results)
     assert "--- Retrieved Knowledge Documents (RAG) ---" in formatted
     assert "doc_alfred" in formatted
-    print(f"  PASSED: RAG service E2E — retrieved {len(results)} chunks, formatted prompt injection")
+    print(
+        f"  PASSED: RAG service E2E — retrieved {len(results)} chunks, formatted prompt injection"
+    )
 
 
 # -- Main -------------------------------------------------------------------
+
 
 async def main():
     print("--- RAG Chunking & Vector Tests ---")
