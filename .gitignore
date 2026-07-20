@@ -3,4 +3,17 @@ __pycache__/
 *$py.class
 .DS_Store
 Albert-clone/
-frontend/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+
+# Backend
+backend/.venv/
+backend/.env
+
+# Caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
