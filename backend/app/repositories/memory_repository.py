@@ -31,3 +31,17 @@ class MemoryRepository:
         )
         result = await self._session.execute(stmt)
         return result.scalars().all()
+
+    async def search_by_vector(
+        self, user_id: UUID, query_embedding: list[float], limit: int = 5
+    ) -> Sequence[Memory]:
+        """Search memories using cosine distance."""
+        stmt = (
+            select(Memory)
+            .where(Memory.user_id == user_id)
+            .where(Memory.embedding.isnot(None))
+            .order_by(Memory.embedding.cosine_distance(query_embedding))
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
