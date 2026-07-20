@@ -113,7 +113,9 @@ class DefaultContextBuilder(ContextAssembler):
             logger.info(
                 "Token budget exceeded — trimmed %d oldest history messages "
                 "(budget=%d, final_tokens=%d)",
-                trimmed_count, self._token_budget, _total_tokens(messages),
+                trimmed_count,
+                self._token_budget,
+                _total_tokens(messages),
             )
 
         return messages
