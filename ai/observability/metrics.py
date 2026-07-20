@@ -25,7 +25,9 @@ class MetricsCollector:
             err_name = str(event.metadata["error"])
             self._error_counts[err_name] += 1
 
-    def record_tokens(self, provider: str, model: str, prompt_tokens: int, completion_tokens: int) -> None:
+    def record_tokens(
+        self, provider: str, model: str, prompt_tokens: int, completion_tokens: int
+    ) -> None:
         """Record token usage metrics from model generation."""
         record = TokenUsageRecord(
             provider=provider,
