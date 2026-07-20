@@ -15,15 +15,30 @@ from ai.orchestrator.models import ChatRequest
 
 # -- Test 1: Deduplication via MemoryCompressor -----------------------------
 
+
 def test_memory_deduplication():
     """Verify that duplicate content is compressed and metadata merged."""
     compressor = MemoryCompressor()
 
     now = datetime.now(timezone.utc)
     records = [
-        MemoryRecord(id="1", type="fact", content="User likes Python", created_at=now, metadata={"source": "chat1"}),
-        MemoryRecord(id="2", type="fact", content="User likes Python ", created_at=now, metadata={"source": "chat2"}),
-        MemoryRecord(id="3", type="preference", content="User prefers dark theme", created_at=now),
+        MemoryRecord(
+            id="1",
+            type="fact",
+            content="User likes Python",
+            created_at=now,
+            metadata={"source": "chat1"},
+        ),
+        MemoryRecord(
+            id="2",
+            type="fact",
+            content="User likes Python ",
+            created_at=now,
+            metadata={"source": "chat2"},
+        ),
+        MemoryRecord(
+            id="3", type="preference", content="User prefers dark theme", created_at=now
+        ),
     ]
 
     compressed = compressor.compress(records)
@@ -36,6 +51,7 @@ def test_memory_deduplication():
 
 # -- Test 2: Memory ranking by relevance and recency ------------------------
 
+
 async def test_memory_scoring_and_ranking():
     """Verify that memories are scored and ranked properly."""
     adapter = InMemoryMemoryAdapter()
@@ -45,13 +61,22 @@ async def test_memory_scoring_and_ranking():
     old_time = now - timedelta(days=10)
 
     adapter._records.append(
-        MemoryRecord(id="old", type="fact", content="User lives in Paris", created_at=old_time)
+        MemoryRecord(
+            id="old", type="fact", content="User lives in Paris", created_at=old_time
+        )
     )
     adapter._records.append(
-        MemoryRecord(id="new", type="fact", content="User currently lives in Munich", created_at=now)
+        MemoryRecord(
+            id="new",
+            type="fact",
+            content="User currently lives in Munich",
+            created_at=now,
+        )
     )
 
-    request = ChatRequest(conversation_id="c1", user_id="u1", message="Where do I live?")
+    request = ChatRequest(
+        conversation_id="c1", user_id="u1", message="Where do I live?"
+    )
     retrieved = await adapter.retrieve(request, None)
 
     assert len(retrieved) > 0, "Should retrieve matching memories"
@@ -60,12 +85,15 @@ async def test_memory_scoring_and_ranking():
     paris_indices = [i for i, r in enumerate(retrieved) if "Paris" in r.content]
 
     if munich_indices and paris_indices:
-        assert munich_indices[0] < paris_indices[0], "Munich record should rank higher due to recency"
+        assert (
+            munich_indices[0] < paris_indices[0]
+        ), "Munich record should rank higher due to recency"
 
     print("  PASSED: Memory scoring and ranking")
 
 
 # -- Main -------------------------------------------------------------------
+
 
 async def main():
     print("--- Memory Compression Tests ---")
