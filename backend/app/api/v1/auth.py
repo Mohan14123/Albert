@@ -1,6 +1,7 @@
 """Auth endpoints — register, login, token rotation, session management."""
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas.auth import (
@@ -51,6 +52,20 @@ async def login(
 ) -> dict:
     """Authenticate and receive JWT + refresh token."""
     tokens = await service.login(body.email, body.password)
+    return tokens
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str
+
+
+@router.post("/google-login", response_model=TokenResponse)
+async def google_login(
+    body: GoogleLoginRequest,
+    service: AuthService = Depends(_get_auth_service),
+) -> dict:
+    """Authenticate via Google ID token."""
+    tokens = await service.google_login(body.id_token)
     return tokens
 
 

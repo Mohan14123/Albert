@@ -29,7 +29,9 @@ class InMemoryVectorStore:
 
         logger.info("Indexed %d document chunks in vector store", len(chunks))
 
-    async def search(self, query: str, top_k: int = 3, threshold: float = 0.0) -> list[SearchResult]:
+    async def search(
+        self, query: str, top_k: int = 3, threshold: float = 0.0
+    ) -> list[SearchResult]:
         """Perform similarity search for query and return ranked top-K results."""
         if not self._chunks:
             return []

@@ -24,7 +24,7 @@ async def trigger_periodic_sync():
     await publisher.close()
 
 
-def run_scheduler() -> None:
+async def main():
     """Run the APScheduler to trigger recurring background jobs."""
     logging.basicConfig(level=logging.INFO)
     logger.info("Starting background scheduler...")
@@ -37,8 +37,13 @@ def run_scheduler() -> None:
     # Keep the main thread alive
     import contextlib
 
-    with contextlib.suppress(KeyboardInterrupt, SystemExit):
-        asyncio.get_event_loop().run_forever()
+    with contextlib.suppress(KeyboardInterrupt, SystemExit, asyncio.CancelledError):
+        while True:
+            await asyncio.sleep(3600)
+
+
+def run_scheduler() -> None:
+    asyncio.run(main())
 
 
 if __name__ == "__main__":

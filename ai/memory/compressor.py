@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
-from datetime import datetime, timezone
 from typing import Sequence
 from .models import MemoryRecord
 
@@ -38,7 +36,9 @@ class MemoryCompressor:
 
         compressed = list(seen_content.values())
         if len(compressed) < len(records):
-            logger.info("Compressed %d memory records down to %d", len(records), len(compressed))
+            logger.info(
+                "Compressed %d memory records down to %d", len(records), len(compressed)
+            )
         return compressed
 
     def summarize_facts(self, records: Sequence[MemoryRecord]) -> list[MemoryRecord]:

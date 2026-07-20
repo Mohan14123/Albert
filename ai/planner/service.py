@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 from ..orchestrator.contracts import IntentPlanner, LanguageModelGateway
 from ..orchestrator.models import ChatRequest
 from .models import ExecutionPlan, PlanStep
@@ -64,14 +65,16 @@ class LLMIntentPlanner(IntentPlanner):
             try:
                 # If a previous attempt produced an error, append correction context
                 if last_error_msg is not None:
-                    context.append({
-                        "role": "user",
-                        "content": (
-                            f"Your previous response was invalid JSON. "
-                            f"Error: {last_error_msg}\n"
-                            f"Please respond ONLY with a valid JSON object matching the schema."
-                        ),
-                    })
+                    context.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Your previous response was invalid JSON. "
+                                f"Error: {last_error_msg}\n"
+                                f"Please respond ONLY with a valid JSON object matching the schema."
+                            ),
+                        }
+                    )
 
                 res = await self._gateway.generate(context)
                 content = res.get("content", "").strip()
@@ -107,18 +110,25 @@ class LLMIntentPlanner(IntentPlanner):
                 last_error_msg = str(e)
                 logger.warning(
                     "LLM returned non-JSON plan (attempt %d/%d): %s",
-                    attempt + 1, _MAX_PLAN_RETRIES + 1, e,
+                    attempt + 1,
+                    _MAX_PLAN_RETRIES + 1,
+                    e,
                 )
             except Exception as e:
                 logger.error(
                     "Unexpected error during plan creation (attempt %d/%d): %s",
-                    attempt + 1, _MAX_PLAN_RETRIES + 1, e,
+                    attempt + 1,
+                    _MAX_PLAN_RETRIES + 1,
+                    e,
                     exc_info=True,
                 )
                 last_error_msg = str(e)
 
         # All retries exhausted — fall back to safe direct chat
-        logger.warning("Plan creation failed after %d attempts — falling back to direct_chat", _MAX_PLAN_RETRIES + 1)
+        logger.warning(
+            "Plan creation failed after %d attempts — falling back to direct_chat",
+            _MAX_PLAN_RETRIES + 1,
+        )
         return ExecutionPlan(intent="direct_chat", confidence=0.3, steps=[])
 
     # -- Internal helpers --------------------------------------------------------
@@ -143,7 +153,8 @@ class LLMIntentPlanner(IntentPlanner):
             if not isinstance(args, dict):
                 logger.warning(
                     "Plan step '%s' has non-dict args (%s) — defaulting to empty",
-                    step_data.get("step_id", "?"), type(args).__name__,
+                    step_data.get("step_id", "?"),
+                    type(args).__name__,
                 )
                 args = {}
 

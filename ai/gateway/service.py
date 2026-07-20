@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator
 from ..orchestrator.contracts import LanguageModelGateway
 from ..config import AIConfig
 from ..constants import (
@@ -33,18 +33,30 @@ logger = logging.getLogger(__name__)
 
 MODEL_REGISTRY: dict[str, list[str]] = {
     "openai": [
-        "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo",
+        "gpt-4o",
+        "gpt-4o-mini",
+        "gpt-4-turbo",
+        "gpt-4",
+        "gpt-3.5-turbo",
     ],
     "gemini": [
-        "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash",
-        "gemini-2.5-pro", "gemini-2.5-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
     ],
     "claude": [
-        "claude-3-5-sonnet", "claude-3-5-haiku", "claude-3-opus",
-        "claude-sonnet-4", "claude-opus-4",
+        "claude-3-5-sonnet",
+        "claude-3-5-haiku",
+        "claude-3-opus",
+        "claude-sonnet-4",
+        "claude-opus-4",
     ],
     "deepseek": [
-        "deepseek-chat", "deepseek-coder", "deepseek-reasoner",
+        "deepseek-chat",
+        "deepseek-coder",
+        "deepseek-reasoner",
     ],
 }
 

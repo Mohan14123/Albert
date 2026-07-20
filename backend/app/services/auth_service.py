@@ -50,7 +50,7 @@ class AuthService:
         return user.id
 
     async def login(
-        self, email: str, password: str, ip_address: str = None, user_agent: str = None
+        self, email: str, password: str, ip_address: str | None = None, user_agent: str | None = None
     ) -> dict[str, object]:
         user = await self._users.get_by_email(email)
         if (
@@ -62,7 +62,7 @@ class AuthService:
         return await self._issue_tokens(user.id, ip_address, user_agent)
 
     async def google_login(
-        self, id_token: str, ip_address: str = None, user_agent: str = None
+        self, id_token: str, ip_address: str | None = None, user_agent: str | None = None
     ) -> dict[str, object]:
         try:
             # For a production app, verify signature against Google's certs.

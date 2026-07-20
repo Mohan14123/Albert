@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: ankane/pgvector:v0.5.1
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-assistant}
       POSTGRES_USER: ${POSTGRES_USER:-assistant}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -45,6 +45,8 @@ services:
     build:
       context: ./backend
       dockerfile: docker/backend.Dockerfile
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-assistant}:${POSTGRES_PASSWORD:-change_me}@postgres:5432/${POSTGRES_DB:-assistant}
       - REDIS_URL=redis://redis:6379/0
@@ -63,6 +65,8 @@ services:
     build:
       context: ./backend
       dockerfile: docker/worker.Dockerfile
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-assistant}:${POSTGRES_PASSWORD:-change_me}@postgres:5432/${POSTGRES_DB:-assistant}
       - REDIS_URL=redis://redis:6379/0
@@ -79,6 +83,8 @@ services:
     build:
       context: .
       dockerfile: ai/Dockerfile
+    env_file:
+      - .env
     environment:
       - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER:-assistant}:${RABBITMQ_DEFAULT_PASS:-change_me}@rabbitmq:5672/
     ports:
@@ -86,6 +92,19 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=/api/v1
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-580789999240-77l582lv2kf3g6bj7lmuhhj5qh6lnrj4.apps.googleusercontent.com}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
 
   nginx:
     image: nginx:alpine
@@ -96,6 +115,7 @@ services:
     depends_on:
       - backend
       - ai
+      - frontend
 
 volumes:
   postgres_data:

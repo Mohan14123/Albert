@@ -7,12 +7,12 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from ai.planner.service import LLMIntentPlanner
-from ai.planner.models import ExecutionPlan
 from ai.orchestrator.contracts import LanguageModelGateway
 from ai.orchestrator.models import ChatRequest
 
 
 # -- Fake gateway for testing -----------------------------------------------
+
 
 class FakeGateway(LanguageModelGateway):
     """Gateway stub that returns predetermined responses for testing."""
@@ -32,11 +32,16 @@ class FakeGateway(LanguageModelGateway):
 
 # -- Test 1: Valid JSON plan -----------------------------------------------
 
+
 async def test_valid_json_plan():
     """Planner should parse a well-formed JSON plan."""
-    gateway = FakeGateway([
-        {"content": '{"intent": "search", "confidence": 0.95, "steps": [{"step_id": "s1", "tool_name": "search.web", "args": {"query": "weather"}}]}'}
-    ])
+    gateway = FakeGateway(
+        [
+            {
+                "content": '{"intent": "search", "confidence": 0.95, "steps": [{"step_id": "s1", "tool_name": "search.web", "args": {"query": "weather"}}]}'
+            }
+        ]
+    )
     planner = LLMIntentPlanner(gateway)
     request = ChatRequest(conversation_id="c1", user_id="u1", message="weather?")
 
@@ -50,13 +55,18 @@ async def test_valid_json_plan():
 
 # -- Test 2: Self-correction on malformed JSON ------------------------------
 
+
 async def test_self_correction_retry():
     """Planner should retry when LLM returns invalid JSON, then succeed."""
-    gateway = FakeGateway([
-        {"content": "This is not JSON at all"},      # attempt 1: fails
-        {"content": "{broken json"},                   # attempt 2: fails
-        {"content": '{"intent": "chat", "confidence": 0.8, "steps": []}'},  # attempt 3: OK
-    ])
+    gateway = FakeGateway(
+        [
+            {"content": "This is not JSON at all"},  # attempt 1: fails
+            {"content": "{broken json"},  # attempt 2: fails
+            {
+                "content": '{"intent": "chat", "confidence": 0.8, "steps": []}'
+            },  # attempt 3: OK
+        ]
+    )
     planner = LLMIntentPlanner(gateway)
     request = ChatRequest(conversation_id="c2", user_id="u2", message="hello")
 
@@ -70,14 +80,17 @@ async def test_self_correction_retry():
 
 # -- Test 3: Fallback after all retries exhausted --------------------------
 
+
 async def test_fallback_on_all_retries_exhausted():
     """After MAX_PLAN_RETRIES+1 failures, planner should fallback to direct_chat."""
-    gateway = FakeGateway([
-        {"content": "not json 1"},
-        {"content": "not json 2"},
-        {"content": "not json 3"},
-        {"content": "not json 4"},  # will never reach with max_retries=2
-    ])
+    gateway = FakeGateway(
+        [
+            {"content": "not json 1"},
+            {"content": "not json 2"},
+            {"content": "not json 3"},
+            {"content": "not json 4"},  # will never reach with max_retries=2
+        ]
+    )
     planner = LLMIntentPlanner(gateway)
     request = ChatRequest(conversation_id="c3", user_id="u3", message="test")
 
@@ -90,11 +103,16 @@ async def test_fallback_on_all_retries_exhausted():
 
 # -- Test 4: Unknown tool filtering ----------------------------------------
 
+
 async def test_unknown_tool_filtering():
     """When known_tool_names is provided, unknown tools should be filtered out."""
-    gateway = FakeGateway([
-        {"content": '{"intent": "multi", "confidence": 0.9, "steps": [{"step_id": "s1", "tool_name": "search.web", "args": {"query": "test"}}, {"step_id": "s2", "tool_name": "nonexistent.tool", "args": {}}]}'}
-    ])
+    gateway = FakeGateway(
+        [
+            {
+                "content": '{"intent": "multi", "confidence": 0.9, "steps": [{"step_id": "s1", "tool_name": "search.web", "args": {"query": "test"}}, {"step_id": "s2", "tool_name": "nonexistent.tool", "args": {}}]}'
+            }
+        ]
+    )
     planner = LLMIntentPlanner(
         gateway,
         known_tool_names={"search.web", "calculator.compute"},
@@ -102,18 +120,25 @@ async def test_unknown_tool_filtering():
     request = ChatRequest(conversation_id="c4", user_id="u4", message="test")
 
     plan = await planner.create_plan(request)
-    assert len(plan.steps) == 1, f"Expected 1 step (unknown filtered out), got {len(plan.steps)}"
+    assert (
+        len(plan.steps) == 1
+    ), f"Expected 1 step (unknown filtered out), got {len(plan.steps)}"
     assert plan.steps[0].tool_name == "search.web"
     print("  PASSED: Unknown tool filtering")
 
 
 # -- Test 5: Non-dict args defaulting -------------------------------------
 
+
 async def test_non_dict_args_default():
     """Plan steps with non-dict args should default to empty dict."""
-    gateway = FakeGateway([
-        {"content": '{"intent": "test", "confidence": 1.0, "steps": [{"step_id": "s1", "tool_name": "search.web", "args": "invalid_args_string"}]}'}
-    ])
+    gateway = FakeGateway(
+        [
+            {
+                "content": '{"intent": "test", "confidence": 1.0, "steps": [{"step_id": "s1", "tool_name": "search.web", "args": "invalid_args_string"}]}'
+            }
+        ]
+    )
     planner = LLMIntentPlanner(gateway)
     request = ChatRequest(conversation_id="c5", user_id="u5", message="test")
 
@@ -125,12 +150,11 @@ async def test_non_dict_args_default():
 
 # -- Test 6: Markdown code block cleanup -----------------------------------
 
+
 async def test_markdown_code_block_cleanup():
     """Planner should strip ```json code blocks from LLM response."""
     json_plan = '{"intent": "code_cleanup", "confidence": 0.99, "steps": []}'
-    gateway = FakeGateway([
-        {"content": f"```json\n{json_plan}\n```"}
-    ])
+    gateway = FakeGateway([{"content": f"```json\n{json_plan}\n```"}])
     planner = LLMIntentPlanner(gateway)
     request = ChatRequest(conversation_id="c6", user_id="u6", message="test")
 
@@ -141,11 +165,10 @@ async def test_markdown_code_block_cleanup():
 
 # -- Test 7: Mock provider handled gracefully ------------------------------
 
+
 async def test_mock_provider_detection():
     """Mock provider responses starting with [Mock LLM should return mock plan."""
-    gateway = FakeGateway([
-        {"content": "[Mock LLM response for context: 'test...']"}
-    ])
+    gateway = FakeGateway([{"content": "[Mock LLM response for context: 'test...']"}])
     planner = LLMIntentPlanner(gateway)
     request = ChatRequest(conversation_id="c7", user_id="u7", message="test")
 
@@ -157,6 +180,7 @@ async def test_mock_provider_detection():
 
 
 # -- Main -------------------------------------------------------------------
+
 
 async def main():
     print("--- Planner Plan Parsing Tests ---")

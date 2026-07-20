@@ -10,13 +10,13 @@ from ai.config import AIConfig
 from ai.gateway.service import MultiProviderGateway, MODEL_REGISTRY
 from ai.gateway.providers import (
     _retry_request,
-    LLMProvider,
     MockProvider,
     GatewayError,
 )
 
 
 # -- Test 1: _retry_request with transient failures -------------------------
+
 
 def test_retry_on_transient_failure():
     """Simulate transient GatewayError (500) that succeeds after retries."""
@@ -26,11 +26,14 @@ def test_retry_on_transient_failure():
         nonlocal call_count
         call_count += 1
         if call_count < 3:
-            raise GatewayError(f"HTTP error 500: Internal Server Error (attempt {call_count})")
+            raise GatewayError(
+                f"HTTP error 500: Internal Server Error (attempt {call_count})"
+            )
         return {"content": "success", "usage": {}}
 
     result = _retry_request(
-        flaky_request, {},
+        flaky_request,
+        {},
         max_retries=3,
         base_delay=0.01,  # fast for testing
         max_delay=0.05,
@@ -51,7 +54,8 @@ def test_no_retry_on_non_retryable():
 
     try:
         _retry_request(
-            auth_fail, {},
+            auth_fail,
+            {},
             max_retries=3,
             base_delay=0.01,
             max_delay=0.05,
@@ -59,7 +63,9 @@ def test_no_retry_on_non_retryable():
         assert False, "Should have raised"
     except GatewayError as e:
         assert "401" in str(e)
-        assert call_count == 1, f"Should NOT have retried, but got {call_count} attempts"
+        assert (
+            call_count == 1
+        ), f"Should NOT have retried, but got {call_count} attempts"
     print("  PASSED: No retry on non-retryable 401 errors")
 
 
@@ -75,7 +81,8 @@ def test_retry_on_rate_limit():
         return {"content": "ok"}
 
     result = _retry_request(
-        rate_limited, {},
+        rate_limited,
+        {},
         max_retries=3,
         base_delay=0.01,
         max_delay=0.05,
@@ -87,12 +94,14 @@ def test_retry_on_rate_limit():
 
 def test_retry_exhaustion():
     """All retries exhausted should raise the final error."""
+
     def always_fail(payload):
         raise GatewayError("HTTP error 503: Service Unavailable")
 
     try:
         _retry_request(
-            always_fail, {},
+            always_fail,
+            {},
             max_retries=2,
             base_delay=0.01,
             max_delay=0.05,
@@ -104,6 +113,7 @@ def test_retry_exhaustion():
 
 
 # -- Test 2: Model registry ------------------------------------------------
+
 
 def test_model_registry():
     """Validate that the model registry contains expected entries."""
@@ -123,6 +133,7 @@ def test_model_registry():
 
 # -- Test 3: Provider fallback ----------------------------------------------
 
+
 async def test_provider_fallback():
     """When no API keys are set, MockProvider should be used as fallback."""
     config = AIConfig(default_provider="openai")  # No API keys set
@@ -137,6 +148,7 @@ async def test_provider_fallback():
 
 
 # -- Test 4: Usage tracking in MockProvider ---------------------------------
+
 
 async def test_mock_usage_tracking():
     """MockProvider should return token usage estimates."""
@@ -153,6 +165,7 @@ async def test_mock_usage_tracking():
 
 
 # -- Main -------------------------------------------------------------------
+
 
 async def main():
     print("--- Gateway Retry Logic Tests ---")

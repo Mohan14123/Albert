@@ -61,31 +61,44 @@ def _retry_request(
                     is_retryable = True
                     break
             # Also retry on connection failures
-            if "connection failed" in error_msg.lower() or "API connection failed" in error_msg:
+            if (
+                "connection failed" in error_msg.lower()
+                or "API connection failed" in error_msg
+            ):
                 is_retryable = True
 
             if not is_retryable or attempt >= max_retries:
                 raise
 
-            delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), max_delay)
+            delay = min(base_delay * (2**attempt) + random.uniform(0, 1), max_delay)
             logger.warning(
                 "Request failed (attempt %d/%d), retrying in %.1fs: %s",
-                attempt + 1, max_retries + 1, delay, exc,
+                attempt + 1,
+                max_retries + 1,
+                delay,
+                exc,
             )
             time.sleep(delay)
         except Exception as exc:
             # Non-GatewayError exceptions (unexpected) — retry on connection issues
             last_exception = exc
             if attempt >= max_retries:
-                raise GatewayError(f"Request failed after {max_retries + 1} attempts: {exc}") from exc
-            delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), max_delay)
+                raise GatewayError(
+                    f"Request failed after {max_retries + 1} attempts: {exc}"
+                ) from exc
+            delay = min(base_delay * (2**attempt) + random.uniform(0, 1), max_delay)
             logger.warning(
                 "Unexpected error (attempt %d/%d), retrying in %.1fs: %s",
-                attempt + 1, max_retries + 1, delay, exc,
+                attempt + 1,
+                max_retries + 1,
+                delay,
+                exc,
             )
             time.sleep(delay)
     # Should never reach here, but just in case
-    raise GatewayError(f"Request failed after {max_retries + 1} attempts") from last_exception
+    raise GatewayError(
+        f"Request failed after {max_retries + 1} attempts"
+    ) from last_exception
 
 
 class LLMProvider(ABC):
@@ -117,8 +130,8 @@ class MockProvider(LLMProvider):
                     "prompt_tokens": len(prompt) // 4,
                     "completion_tokens": len(content) // 4,
                     "total_tokens": (len(prompt) + len(content)) // 4,
-                }
-            }
+                },
+            },
         }
 
     async def stream(self, context: Any) -> AsyncIterator[dict[str, Any]]:
@@ -166,11 +179,7 @@ class OpenAICompatibleProvider(LLMProvider):
 
     async def generate(self, context: Any) -> dict[str, Any]:
         messages = self._normalize_context(context)
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": False
-        }
+        payload = {"model": self.model, "messages": messages, "stream": False}
         res = await asyncio.to_thread(_retry_request, self._make_request, payload)
         try:
             return {

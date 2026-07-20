@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from typing import Sequence
 from .models import DocumentChunk
 
 
@@ -40,6 +39,6 @@ class TextChunker:
 
             if end == text_len:
                 break
-            start += (self.chunk_size - self.chunk_overlap)
+            start += self.chunk_size - self.chunk_overlap
 
         return chunks

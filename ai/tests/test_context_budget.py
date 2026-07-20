@@ -12,6 +12,7 @@ from ai.orchestrator.models import ChatRequest, ChatMessage
 
 # -- Test 1: Token estimation -----------------------------------------------
 
+
 def test_token_estimation():
     """Validate the character-based token estimation utility."""
     assert estimate_tokens("") == 1, "Empty string should return 1 (min)"
@@ -22,6 +23,7 @@ def test_token_estimation():
 
 
 # -- Test 2: Budget enforcement with history trimming -----------------------
+
 
 async def test_budget_trims_history():
     """When history is too large, oldest messages should be trimmed."""
@@ -43,7 +45,9 @@ async def test_budget_trims_history():
 
     total = _total_tokens(messages)
     assert total <= 100, f"Total tokens ({total}) exceeds budget (100)"
-    assert len(messages) < 22, f"History should have been trimmed (got {len(messages)} messages)"
+    assert (
+        len(messages) < 22
+    ), f"History should have been trimmed (got {len(messages)} messages)"
     # System + user message always present
     assert messages[0]["role"] == "system"
     assert messages[-1]["role"] == "user"
@@ -52,6 +56,7 @@ async def test_budget_trims_history():
 
 
 # -- Test 3: No trimming when under budget ----------------------------------
+
 
 async def test_no_trimming_when_under_budget():
     """Short history should not be trimmed."""
@@ -77,6 +82,7 @@ async def test_no_trimming_when_under_budget():
 
 # -- Test 4: Memory and tool injection preserved after trimming -------------
 
+
 async def test_injection_preserved():
     """Memories and tool results should appear in system prompt even after trimming."""
     builder = DefaultContextBuilder(token_budget=200)
@@ -88,7 +94,14 @@ async def test_injection_preserved():
             self.type = type
 
     memories = [MockMemory("User likes Python", "preference")]
-    tool_results = [{"tool_name": "calculator.compute", "success": True, "result": 42, "error": None}]
+    tool_results = [
+        {
+            "tool_name": "calculator.compute",
+            "success": True,
+            "result": 42,
+            "error": None,
+        }
+    ]
 
     request = ChatRequest(
         conversation_id="c3",
@@ -101,12 +114,15 @@ async def test_injection_preserved():
 
     system_content = messages[0]["content"]
     assert "User likes Python" in system_content, "Memory should be in system prompt"
-    assert "calculator.compute" in system_content, "Tool result should be in system prompt"
+    assert (
+        "calculator.compute" in system_content
+    ), "Tool result should be in system prompt"
     assert messages[-1]["content"] == "What's my preference?"
     print("  PASSED: Memory and tool injection preserved after trimming")
 
 
 # -- Test 5: Empty history handled gracefully --------------------------------
+
 
 async def test_empty_history():
     """Requests with no history should work cleanly."""
@@ -126,6 +142,7 @@ async def test_empty_history():
 
 
 # -- Main -------------------------------------------------------------------
+
 
 async def main():
     print("--- Token Estimation Tests ---")
